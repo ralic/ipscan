@@ -1,6 +1,3 @@
-/**
- * 
- */
 package net.azib.ipscan.gui;
 
 import net.azib.ipscan.config.Labels;
@@ -11,6 +8,7 @@ import net.azib.ipscan.fetchers.FetcherRegistry;
 import net.azib.ipscan.gui.util.LayoutHelper;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.*;
@@ -18,12 +16,8 @@ import org.eclipse.swt.widgets.*;
 import java.io.File;
 
 import static net.azib.ipscan.gui.util.LayoutHelper.formData;
+import static net.azib.ipscan.gui.util.LayoutHelper.iconFont;
 
-/**
- * EditOpenersDialog
- *
- * @author Anton Keks
- */
 public class EditOpenersDialog extends AbstractModalDialog {
 	private final FetcherRegistry fetcherRegistry;
 	private final OpenersConfig openersConfig;
@@ -56,14 +50,18 @@ public class EditOpenersDialog extends AbstractModalDialog {
 		openersList = new List(shell, SWT.BORDER | SWT.MULTI | SWT.V_SCROLL);
 		editFieldsGroup = new Group(shell, SWT.NONE);
 
-		openersList.setLayoutData(formData(135, 200, null, null, new FormAttachment(messageLabel, 10), new FormAttachment(editFieldsGroup, 0, SWT.BOTTOM)));
+		openersList.setLayoutData(formData(140, 200, null, null, new FormAttachment(messageLabel, 10), new FormAttachment(editFieldsGroup, 0, SWT.BOTTOM)));
 		for (String name : openersConfig) {
 			openersList.add(name);
 		}
 		openersList.addListener(SWT.Selection, new ItemSelectListener());
-		
+
+		Font iconFont = iconFont(shell);
+
 		Button upButton = new Button(shell, SWT.NONE);
 		upButton.setText(Labels.getLabel("button.up"));
+		upButton.setToolTipText(Labels.getLabel("button.up.hint"));
+		upButton.setFont(iconFont);
 		upButton.addListener(SWT.Selection, new UpButtonListener(openersList) {
 			@Override public void handleEvent(Event event) {
 				super.handleEvent(event);
@@ -72,7 +70,9 @@ public class EditOpenersDialog extends AbstractModalDialog {
 		});
 		
 		Button downButton = new Button(shell, SWT.NONE);
-		downButton.setText(Labels.getLabel("button.down"));	
+		downButton.setText(Labels.getLabel("button.down"));
+		downButton.setToolTipText(Labels.getLabel("button.down.hint"));
+		downButton.setFont(iconFont);
 		downButton.addListener(SWT.Selection, new DownButtonListener(openersList) {
 			@Override public void handleEvent(Event event) {
 				super.handleEvent(event);
@@ -88,16 +88,18 @@ public class EditOpenersDialog extends AbstractModalDialog {
 		deleteButton.setText(Labels.getLabel("button.delete"));
 		deleteButton.addListener(SWT.Selection, new DeleteButtonListener());
 
-		upButton.setLayoutData(formData(new FormAttachment(openersList), new FormAttachment(deleteButton, 0, SWT.RIGHT), new FormAttachment(messageLabel, 10), null));
-		downButton.setLayoutData(formData(new FormAttachment(openersList), new FormAttachment(deleteButton, 0, SWT.RIGHT), new FormAttachment(upButton), null));
+		upButton.setLayoutData(formData(new FormAttachment(openersList), null, new FormAttachment(messageLabel, 10), null));
+		downButton.setLayoutData(formData(new FormAttachment(openersList), null, new FormAttachment(upButton), null));
 		addButton.setLayoutData(formData(new FormAttachment(openersList), new FormAttachment(deleteButton, 0, SWT.RIGHT), new FormAttachment(downButton, 16), null));
 		deleteButton.setLayoutData(formData(new FormAttachment(openersList), null, new FormAttachment(addButton), null));
 						
-		editFieldsGroup.setLayoutData(formData(new FormAttachment(upButton, 10), null, new FormAttachment(messageLabel, 10), null));
+		editFieldsGroup.setLayoutData(formData(new FormAttachment(deleteButton, 10), null, new FormAttachment(messageLabel, 10), null));
 		RowLayout rowLayout = new RowLayout(SWT.VERTICAL);
 		rowLayout.fill = true;
 		rowLayout.justify = true; 
-		rowLayout.marginTop = 13;
+		rowLayout.marginTop = 5;
+		rowLayout.marginBottom = 20;
+		rowLayout.marginWidth = 5;
 		editFieldsGroup.setLayout(rowLayout);
 		
 		Label openerNameLabel = new Label(editFieldsGroup, SWT.NONE);
@@ -127,7 +129,6 @@ public class EditOpenersDialog extends AbstractModalDialog {
 		workingDirText = new Text(editFieldsGroup, SWT.BORDER);
 		workingDirText.setSize(SWT.DEFAULT, 22);
 				
-		editFieldsGroup.layout();
 		editFieldsGroup.pack();
 
 		Button okButton = new Button(shell, SWT.NONE);

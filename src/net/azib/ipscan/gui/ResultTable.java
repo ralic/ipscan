@@ -6,7 +6,6 @@
 package net.azib.ipscan.gui;
 
 import net.azib.ipscan.config.GUIConfig;
-import net.azib.ipscan.config.Labels;
 import net.azib.ipscan.core.ScanningResult;
 import net.azib.ipscan.core.ScanningResult.ResultType;
 import net.azib.ipscan.core.ScanningResultList;
@@ -19,19 +18,24 @@ import net.azib.ipscan.fetchers.FetcherRegistry;
 import net.azib.ipscan.fetchers.FetcherRegistryUpdateListener;
 import net.azib.ipscan.gui.actions.ColumnsActions;
 import net.azib.ipscan.gui.actions.CommandsMenuActions;
-import net.azib.ipscan.gui.actions.ScanMenuActions;
 import net.azib.ipscan.gui.actions.ToolsActions;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.*;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.util.List;
+
+import static net.azib.ipscan.core.ScanningResult.ResultType.*;
+import static net.azib.ipscan.gui.util.LayoutHelper.icon;
 
 /**
  * Table of scanning results.
  * 
  * @author Anton Keks
  */
+@Singleton
 public class ResultTable extends Table implements FetcherRegistryUpdateListener, StateTransitionListener {
 	
 	private ScanningResultList scanningResults;
@@ -44,7 +48,9 @@ public class ResultTable extends Table implements FetcherRegistryUpdateListener,
 
 	private Listener columnResizeListener;
 
-	public ResultTable(Composite parent, GUIConfig guiConfig, FetcherRegistry fetcherRegistry, ScanningResultList scanningResultList, StateMachine stateMachine, ColumnsActions.ColumnClick columnClickListener, ColumnsActions.ColumnResize columnResizeListener) {
+	@Inject public ResultTable(Shell parent, GUIConfig guiConfig, FetcherRegistry fetcherRegistry,
+							   ScanningResultList scanningResultList, StateMachine stateMachine,
+							   ColumnsActions.ColumnClick columnClickListener, ColumnsActions.ColumnResize columnResizeListener) {
 		super(parent, SWT.BORDER | SWT.MULTI | SWT.FULL_SELECTION | SWT.VIRTUAL);
 		this.guiConfig = guiConfig;
 		this.scanningResults = scanningResultList;
@@ -60,10 +66,10 @@ public class ResultTable extends Table implements FetcherRegistryUpdateListener,
 		handleUpdateOfSelectedFetchers(fetcherRegistry);
 		
 		// load button images
-		listImages[ResultType.UNKNOWN.ordinal()] = new Image(null, Labels.getInstance().getImageAsStream("list.unknown.img"));
-		listImages[ResultType.DEAD.ordinal()] = new Image(null, Labels.getInstance().getImageAsStream("list.dead.img"));
-		listImages[ResultType.ALIVE.ordinal()] = new Image(null, Labels.getInstance().getImageAsStream("list.alive.img"));
-		listImages[ResultType.WITH_PORTS.ordinal()] = new Image(null, Labels.getInstance().getImageAsStream("list.addinfo.img"));
+		listImages[UNKNOWN.ordinal()] = icon("list/unknown");
+		listImages[DEAD.ordinal()] = icon("list/dead");
+		listImages[ALIVE.ordinal()] = icon("list/alive");
+		listImages[WITH_PORTS.ordinal()] = icon("list/ports");
 		
 		addListener(SWT.KeyDown, new CommandsMenuActions.Delete(this, stateMachine));
 		addListener(SWT.KeyDown, new CommandsMenuActions.CopyIP(this));
@@ -184,9 +190,6 @@ public class ResultTable extends Table implements FetcherRegistryUpdateListener,
 	}
 	
 	public void removeAll() {
-		if (ScanMenuActions.isLoadedFromFile) {
-			return;
-		}
 		// remove all items from the real storage first
 		scanningResults.clear();
 		super.removeAll();

@@ -20,7 +20,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public abstract class StateMachine {
 	
-	public enum Transition {INIT, START, STOP, NEXT, COMPLETE, RESET, RESCAN}
+	public enum Transition {INIT, START, STOP, NEXT, COMPLETE, RESET, RESCAN, CONTINUE}
 	
 	private volatile ScanningState state = ScanningState.IDLE;
 	
@@ -28,7 +28,6 @@ public abstract class StateMachine {
 	private List<StateTransitionListener> transitionListeners = new ArrayList<StateTransitionListener>();
 	
 	/**
-	 * @param state
 	 * @return true if current state is as specified
 	 */
 	public boolean inState(ScanningState state) {
@@ -44,7 +43,6 @@ public abstract class StateMachine {
 
 	/**
 	 * Registers state transition listener.
-	 * @param listener instance
 	 */
 	public void addTransitionListener(StateTransitionListener listener) {
 		try {
@@ -58,7 +56,6 @@ public abstract class StateMachine {
 	
 	/**
 	 * Unregisters the listener
-	 * @param killHandler
 	 */
 	public void removeTransitionListener(StateTransitionListener listener) {
 		try {
@@ -73,7 +70,6 @@ public abstract class StateMachine {
 	/**
 	 * Transitions to the specified state, notifying all listeners.
 	 * Note: this method is intentionally not public, use specific methods to make desired transitions.
-	 * @param newState
 	 */
 	void transitionTo(ScanningState newState, Transition transition) {
 		if (state != newState) {
@@ -154,6 +150,18 @@ public abstract class StateMachine {
 		}
 		else {
 			throw new IllegalStateException("Attempt to go scanning from " + state);
+		}
+	}
+
+	/**
+	 * Continues previously aborted scanning process
+	 */
+	public void continueScanning() {
+		if (state == ScanningState.IDLE) {
+			transitionTo(ScanningState.STARTING, Transition.CONTINUE);
+		}
+		else {
+			throw new IllegalStateException("Attempt to continue scanning from " + state);
 		}
 	}
 

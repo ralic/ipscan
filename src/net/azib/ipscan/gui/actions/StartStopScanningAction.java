@@ -8,6 +8,7 @@ package net.azib.ipscan.gui.actions;
 import net.azib.ipscan.config.GUIConfig;
 import net.azib.ipscan.config.GUIConfig.DisplayMethod;
 import net.azib.ipscan.config.Labels;
+import net.azib.ipscan.config.Platform;
 import net.azib.ipscan.core.*;
 import net.azib.ipscan.core.ScanningResult.ResultType;
 import net.azib.ipscan.core.net.PingerRegistry;
@@ -22,11 +23,15 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Image;
-import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.MessageBox;
+import org.eclipse.swt.widgets.*;
 
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
 import java.net.InetAddress;
+
+import static net.azib.ipscan.core.state.ScanningState.*;
+import static net.azib.ipscan.gui.util.LayoutHelper.icon;
 
 /**
  * Start/Stop button action class.
@@ -34,6 +39,7 @@ import java.net.InetAddress;
  * 
  * @author Anton Keks
  */
+@Singleton
 public class StartStopScanningAction implements SelectionListener, ScanningProgressCallback, StateTransitionListener {
 	
 	private ScannerDispatcherThreadFactory scannerThreadFactory;
@@ -43,6 +49,7 @@ public class StartStopScanningAction implements SelectionListener, ScanningProgr
 
 	private String mainWindowTitle;
 	private StatusBar statusBar;
+	private TaskItem taskBarItem;
 	private ResultTable resultTable;
 	private FeederGUIRegistry feederRegistry;
 	private Button button;
@@ -60,23 +67,26 @@ public class StartStopScanningAction implements SelectionListener, ScanningProgr
 		this.display = display;
 		
 		// preload button images
-		buttonImages[ScanningState.IDLE.ordinal()] = new Image(display, Labels.getInstance().getImageAsStream("button.start.img"));
-		buttonImages[ScanningState.SCANNING.ordinal()] = new Image(display, Labels.getInstance().getImageAsStream("button.stop.img"));
-		buttonImages[ScanningState.STARTING.ordinal()] = buttonImages[ScanningState.SCANNING.ordinal()]; 
-		buttonImages[ScanningState.RESTARTING.ordinal()] = buttonImages[ScanningState.SCANNING.ordinal()];
-		buttonImages[ScanningState.STOPPING.ordinal()] = new Image(display, Labels.getInstance().getImageAsStream("button.kill.img"));
-		buttonImages[ScanningState.KILLING.ordinal()] = buttonImages[ScanningState.STOPPING.ordinal()];
+		buttonImages[IDLE.ordinal()] = icon("buttons/start");
+		buttonImages[SCANNING.ordinal()] = icon("buttons/stop");
+		buttonImages[STARTING.ordinal()] = buttonImages[SCANNING.ordinal()];
+		buttonImages[RESTARTING.ordinal()] = buttonImages[SCANNING.ordinal()];
+		buttonImages[STOPPING.ordinal()] = icon("buttons/kill");
+		buttonImages[KILLING.ordinal()] = buttonImages[STOPPING.ordinal()];
 		
 		// preload button texts
-		buttonTexts[ScanningState.IDLE.ordinal()] = Labels.getLabel("button.start");
-		buttonTexts[ScanningState.SCANNING.ordinal()] = Labels.getLabel("button.stop");
-		buttonTexts[ScanningState.STARTING.ordinal()] = buttonTexts[ScanningState.SCANNING.ordinal()]; 
-		buttonTexts[ScanningState.RESTARTING.ordinal()] = buttonTexts[ScanningState.SCANNING.ordinal()];
-		buttonTexts[ScanningState.STOPPING.ordinal()] = Labels.getLabel("button.kill");
-		buttonTexts[ScanningState.KILLING.ordinal()] = Labels.getLabel("button.kill");
+		buttonTexts[IDLE.ordinal()] = Labels.getLabel("button.start");
+		buttonTexts[SCANNING.ordinal()] = Labels.getLabel("button.stop");
+		buttonTexts[STARTING.ordinal()] = buttonTexts[SCANNING.ordinal()];
+		buttonTexts[RESTARTING.ordinal()] = buttonTexts[SCANNING.ordinal()];
+		buttonTexts[STOPPING.ordinal()] = Labels.getLabel("button.kill");
+		buttonTexts[KILLING.ordinal()] = Labels.getLabel("button.kill");
 	}
-	
-	public StartStopScanningAction(ScannerDispatcherThreadFactory scannerThreadFactory, StateMachine stateMachine, ResultTable resultTable, StatusBar statusBar, FeederGUIRegistry feederRegistry, PingerRegistry pingerRegistry, Button startStopButton, GUIConfig guiConfig) {
+
+	@Inject
+	public StartStopScanningAction(ScannerDispatcherThreadFactory scannerThreadFactory, StateMachine stateMachine, ResultTable resultTable,
+								   StatusBar statusBar, FeederGUIRegistry feederRegistry, PingerRegistry pingerRegistry,
+								   @Named("startStopButton") Button startStopButton, GUIConfig guiConfig) {
 		this(startStopButton.getDisplay());
 
 		this.scannerThreadFactory = scannerThreadFactory;
@@ -87,6 +97,7 @@ public class StartStopScanningAction implements SelectionListener, ScanningProgr
 		this.button = startStopButton;
 		this.stateMachine = stateMachine;
 		this.guiConfig = guiConfig;
+		this.taskBarItem = getTaskBarItem();
 		
 		// add listeners to all state changes
 		stateMachine.addTransitionListener(this);
@@ -95,6 +106,16 @@ public class StartStopScanningAction implements SelectionListener, ScanningProgr
 		ScanningState state = stateMachine.getState();
 		button.setImage(buttonImages[state.ordinal()]);
 		button.setText(buttonTexts[state.ordinal()]);
+	}
+
+	private TaskItem getTaskBarItem() {
+		TaskBar bar = display.getSystemTaskBar();
+		// TODO: test on Mac and re-enable this feature (see issue #82)
+		if (bar == null || Platform.MAC_OS) return null;
+		TaskItem item = bar.getItem(statusBar.getShell());
+		if (item == null) item = bar.getItem(null);
+		if (item != null) item.setProgressState(SWT.NORMAL);
+		return item;
 	}
 
 	/**
@@ -109,15 +130,14 @@ public class StartStopScanningAction implements SelectionListener, ScanningProgr
 	 */
 	public void widgetSelected(SelectionEvent event) {
 		// ask for confirmation before erasing scanning results
-		if (stateMachine.inState(ScanningState.IDLE)) {
+		if (stateMachine.inState(IDLE)) {
 			if (!preScanChecks())
 				return;
 		}
-		ScanMenuActions.isLoadedFromFile = false;
 		stateMachine.transitionToNext();
 	}
 
-	private final boolean preScanChecks() {
+	private boolean preScanChecks() {
 		// autodetect usable pingers and silently ignore any changes - 
 		// user should see any errors only if they have explicitly selected a pinger
 		pingerRegistry.checkSelectedPinger();
@@ -148,7 +168,9 @@ public class StartStopScanningAction implements SelectionListener, ScanningProgr
 				break;
 			case STARTING:
 				// start the scan from scratch!
-				resultTable.removeAll();
+				if (transition != Transition.CONTINUE)
+					resultTable.removeAll();
+
 				try {
 					scannerThread = scannerThreadFactory.createScannerThread(feederRegistry.createFeeder(), StartStopScanningAction.this, createResultsCallback(state));
 					stateMachine.startScanning();
@@ -191,9 +213,9 @@ public class StartStopScanningAction implements SelectionListener, ScanningProgr
 	/**
 	 * @return the appropriate ResultsCallback instance, depending on the configured display method.
 	 */
-	private final ScanningResultCallback createResultsCallback(ScanningState state) {
+	private ScanningResultCallback createResultsCallback(ScanningState state) {
 		// rescanning must follow the same strategy of displaying all hosts (even the dead ones), because the results are already in the list
-		if (guiConfig.displayMethod == DisplayMethod.ALL || state == ScanningState.RESTARTING) {
+		if (guiConfig.displayMethod == DisplayMethod.ALL || state == RESTARTING) {
 			return new ScanningResultCallback() {
 				public void prepareForResults(ScanningResult result) {
 					resultTable.addOrUpdateResultRow(result);
@@ -227,12 +249,10 @@ public class StartStopScanningAction implements SelectionListener, ScanningProgr
 	}
 
 	public void updateProgress(final InetAddress currentAddress, final int runningThreads, final int percentageComplete) {
-		if (display.isDisposed())
-			return;
+		if (display.isDisposed()) return;
 		display.asyncExec(new Runnable() {
 			public void run() {
-				if (statusBar.isDisposed())
-					return;
+				if (statusBar.isDisposed()) return;
 				
 				// update status bar
 				if (currentAddress != null) {
@@ -240,9 +260,10 @@ public class StartStopScanningAction implements SelectionListener, ScanningProgr
 				}					
 				statusBar.setRunningThreads(runningThreads);
 				statusBar.setProgress(percentageComplete);
+				if (taskBarItem != null) taskBarItem.setProgress(percentageComplete);
 				
 				// show percentage in main window title
-				if (!stateMachine.inState(ScanningState.IDLE)) 
+				if (!stateMachine.inState(IDLE))
 					statusBar.getShell().setText(percentageComplete + "% - " + mainWindowTitle);
 				else
 					statusBar.getShell().setText(mainWindowTitle);

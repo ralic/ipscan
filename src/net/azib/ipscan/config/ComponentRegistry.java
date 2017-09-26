@@ -5,170 +5,100 @@
  */
 package net.azib.ipscan.config;
 
-import net.azib.ipscan.core.PluginLoader;
-import net.azib.ipscan.core.Scanner;
-import net.azib.ipscan.core.ScannerDispatcherThreadFactory;
-import net.azib.ipscan.core.ScanningResultList;
-import net.azib.ipscan.core.net.PingerRegistry;
+import dagger.Module;
+import dagger.Provides;
+import net.azib.ipscan.core.Plugin;
+import net.azib.ipscan.core.state.StateMachine;
 import net.azib.ipscan.exporters.*;
+import net.azib.ipscan.feeders.FeederCreator;
+import net.azib.ipscan.feeders.FeederRegistry;
 import net.azib.ipscan.fetchers.*;
-import net.azib.ipscan.gui.*;
-import net.azib.ipscan.gui.MainMenu.CommandsMenu;
-import net.azib.ipscan.gui.actions.*;
-import net.azib.ipscan.gui.feeders.FeederGUIRegistry;
-import net.azib.ipscan.gui.feeders.FileFeederGUI;
-import net.azib.ipscan.gui.feeders.RandomFeederGUI;
-import net.azib.ipscan.gui.feeders.RangeFeederGUI;
+import net.azib.ipscan.gui.SWTAwareStateMachine;
+import net.azib.ipscan.gui.feeders.*;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.*;
-import org.picocontainer.MutablePicoContainer;
-import org.picocontainer.Parameter;
-import org.picocontainer.PicoContainer;
-import org.picocontainer.defaults.ComponentParameter;
-import org.picocontainer.defaults.ConstantParameter;
-import org.picocontainer.defaults.DefaultPicoContainer;
+
+import javax.inject.Named;
+import javax.inject.Singleton;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
- * This class is the dependency injection configuration using the Pico Container.
+ * This class is the dependency injection configuration using Dagger2.
  * 
  * @author Anton Keks
  */
+@Module
 public class ComponentRegistry {
 
-	private PicoContainer container;
-
-	private boolean containerStarted;
-
-	public ComponentRegistry() {
-		MutablePicoContainer container = new DefaultPicoContainer();
-		this.container = container;
-
-		ComponentParameter anyComponentParameter = new ComponentParameter();
-
-		// non-GUI
-		Config globalConfig = Config.getConfig();
-		container.registerComponentInstance(globalConfig);
-		container.registerComponentInstance(globalConfig.getPreferences());
-		container.registerComponentInstance(globalConfig.forScanner());
-		container.registerComponentInstance(globalConfig.forGUI());
-		container.registerComponentInstance(globalConfig.forOpeners());
-		container.registerComponentInstance(globalConfig.forFavorites());
-		container.registerComponentInstance(Labels.getInstance());
-		container.registerComponentImplementation(CommentsConfig.class);
-		container.registerComponentImplementation(ConfigDetector.class);
-
-		container.registerComponentImplementation(ExporterRegistry.class);
-		container.registerComponentImplementation(TXTExporter.class);
-		container.registerComponentImplementation(CSVExporter.class);
-		container.registerComponentImplementation(XMLExporter.class);
-		container.registerComponentImplementation(IPListExporter.class);
-
-		container.registerComponentImplementation(FetcherRegistry.class, FetcherRegistry.class);
-		container.registerComponentImplementation(IPFetcher.class);
-		container.registerComponentImplementation(PingFetcher.class);
-		container.registerComponentImplementation(PingTTLFetcher.class);
-		container.registerComponentImplementation(HostnameFetcher.class);
-		container.registerComponentImplementation(PortsFetcher.class);
-		container.registerComponentImplementation(FilteredPortsFetcher.class);
-		container.registerComponentImplementation(WebDetectFetcher.class);
-		container.registerComponentImplementation(HTTPSenderFetcher.class);
-		container.registerComponentImplementation(CommentFetcher.class);
-		container.registerComponentImplementation(NetBIOSInfoFetcher.class);
-		if (Platform.WINDOWS) container.registerComponentImplementation(WinMACFetcher.class);
-		else container.registerComponentImplementation(UnixMACFetcher.class);
-		container.registerComponentImplementation(MACVendorFetcher.class);
-
-		container.registerComponentImplementation(PingerRegistry.class, PingerRegistry.class);
-		container.registerComponentImplementation(ScanningResultList.class);
-		container.registerComponentImplementation(Scanner.class);
-		container.registerComponentImplementation(SWTAwareStateMachine.class);
-		container.registerComponentImplementation(ScannerDispatcherThreadFactory.class);
-		container.registerComponentImplementation(CommandLineProcessor.class);
-
-		// GUI follows (TODO: move GUI to a separate place)
-
-		// Some "shared" GUI components
-		container.registerComponentInstance(Display.getDefault());
-		container.registerComponentImplementation("mainShell", Shell.class);
-		container.registerComponentImplementation("mainMenu", Menu.class, new Parameter[] {
-				new ComponentParameter("mainShell"), new ConstantParameter(SWT.BAR) });
-		container.registerComponentImplementation("commandsMenu", CommandsMenu.class);
-
-		container.registerComponentImplementation("feederArea", Composite.class, new Parameter[] {
-				new ComponentParameter("mainShell"), new ConstantParameter(SWT.NONE) });
-		container.registerComponentImplementation("controlsArea", Composite.class, new Parameter[] {
-				new ComponentParameter("mainShell"), new ConstantParameter(SWT.NONE) });
-		container.registerComponentImplementation("startStopButton", Button.class, new Parameter[] {
-				new ComponentParameter("controlsArea"), new ConstantParameter(SWT.NONE) });
-		container.registerComponentImplementation("feederSelectionCombo", Combo.class,
-				new Parameter[] { new ComponentParameter("controlsArea"), new ConstantParameter(SWT.READ_ONLY) });
-
-		// GUI Feeders
-		container.registerComponentImplementation(FeederGUIRegistry.class);
-		Parameter[] feederGUIParameters = new Parameter[] { new ComponentParameter("feederArea") };
-		container.registerComponentImplementation(RangeFeederGUI.class, RangeFeederGUI.class, feederGUIParameters);
-		container.registerComponentImplementation(RandomFeederGUI.class, RandomFeederGUI.class, feederGUIParameters);
-		container.registerComponentImplementation(FileFeederGUI.class, FileFeederGUI.class, feederGUIParameters);
-
-		container.registerComponentImplementation(OpenerLauncher.class);
-		container.registerComponentImplementation(MainWindow.class, MainWindow.class, new Parameter[] {
-				new ComponentParameter("mainShell"), anyComponentParameter, new ComponentParameter("feederArea"),
-				new ComponentParameter("controlsArea"), new ComponentParameter("feederSelectionCombo"),
-				new ComponentParameter("startStopButton"), anyComponentParameter, anyComponentParameter,
-				anyComponentParameter, anyComponentParameter, anyComponentParameter, anyComponentParameter,
-				anyComponentParameter, anyComponentParameter });
-		container.registerComponentImplementation(ResultTable.class, ResultTable.class, new Parameter[] {
-				new ComponentParameter("mainShell"), anyComponentParameter, anyComponentParameter,
-				anyComponentParameter, anyComponentParameter, anyComponentParameter, anyComponentParameter });
-		container.registerComponentImplementation(StatusBar.class, StatusBar.class, new Parameter[] {
-				new ComponentParameter("mainShell"), anyComponentParameter, anyComponentParameter, anyComponentParameter, anyComponentParameter });
-
-		container.registerComponentImplementation(MainMenu.class, MainMenu.class, new Parameter[] {
-				new ComponentParameter("mainShell"), new ComponentParameter("mainMenu"),
-				new ComponentParameter("commandsMenu"), anyComponentParameter, new ConstantParameter(container) });
-		container.registerComponentImplementation(MainMenu.ColumnsMenu.class, MainMenu.ColumnsMenu.class,
-				new Parameter[] { new ComponentParameter("mainShell"), anyComponentParameter, anyComponentParameter, anyComponentParameter });
-		if (Platform.MAC_OS)
-			container.registerComponentImplementation(MacApplicationMenu.class);
-
-		container.registerComponentImplementation(AboutDialog.class);
-		container.registerComponentImplementation(PreferencesDialog.class);
-		container.registerComponentImplementation(ConfigDetectorDialog.class);
-		container.registerComponentImplementation(SelectFetchersDialog.class);
-		container.registerComponentImplementation(DetailsWindow.class);
-		container.registerComponentImplementation(StatisticsDialog.class);
-
-		// various actions / listeners
-		container.registerComponentImplementation(StartStopScanningAction.class);
-		container.registerComponentImplementation(ColumnsActions.SortBy.class);
-		container.registerComponentImplementation(ColumnsActions.FetcherPreferences.class);
-		container.registerComponentImplementation(ColumnsActions.AboutFetcher.class);
-		container.registerComponentImplementation(ColumnsActions.ColumnClick.class);
-		container.registerComponentImplementation(ColumnsActions.ColumnResize.class);
-		container.registerComponentImplementation(CommandsMenuActions.Details.class);
-		container.registerComponentImplementation(ToolsActions.Preferences.class);
-		container.registerComponentImplementation(ToolsActions.ChooseFetchers.class);
-		container.registerComponentImplementation(HelpMenuActions.CheckVersion.class);
-
-        new PluginLoader().addTo(container);
+	@Provides @Singleton public Display getDisplay() {
+		return Display.getDefault();
 	}
 
-	private void start() {
-		if (!containerStarted) {
-			containerStarted = true;
-			container.start();
+	@Provides @Singleton public Shell mainShell() {
+		return new Shell();
+	}
+
+	@Provides @Named("mainMenu") @Singleton public Menu mainMenu(Shell mainShell) {
+		return new Menu(mainShell, SWT.BAR);
+	}
+
+	@Provides @Named("feederArea") @Singleton public Composite feederArea(Shell mainShell) {
+		return new Composite(mainShell, SWT.NONE);
+	}
+
+	@Provides @Named("controlsArea") @Singleton public Composite controlsArea(Shell mainShell) {
+		return new Composite(mainShell, SWT.NONE);
+	}
+
+	@Provides @Named("startStopButton") @Singleton public Button startStopButton(@Named("controlsArea") Composite controlsArea) {
+		return new Button(controlsArea, SWT.NONE);
+	}
+
+	@Provides @Named("feederSelectionCombo") @Singleton public Combo feederSelectionCombo(@Named("controlsArea") Composite controlsArea) {
+		return new Combo(controlsArea, SWT.READ_ONLY);
+	}
+
+	@Provides @Singleton StateMachine stateMachine(SWTAwareStateMachine stateMachine) {
+		return stateMachine;
+	}
+
+	@Provides @Singleton FeederRegistry<? extends FeederCreator> feederRegistry(FeederGUIRegistry feederRegistry) {
+		return feederRegistry;
+	}
+
+	@Provides @Singleton public List<AbstractFeederGUI> feeders(RangeFeederGUI f1, RandomFeederGUI f2, FileFeederGUI f3) {
+		return Arrays.asList(f1, f2, f3);
+	}
+
+	@Provides @Singleton public List<Exporter> exporters(List<Class<? extends Plugin>> plugins, TXTExporter e1, CSVExporter e2, XMLExporter e3, IPListExporter e4) {
+		return addPlugins(Arrays.<Exporter>asList(e1, e2, e3, e4), Exporter.class, plugins);
+	}
+
+	@Provides @Singleton public List<Fetcher> fetchers(List<Class<? extends Plugin>> plugins,
+											IPFetcher f1, PingFetcher f2, PingTTLFetcher f3, HostnameFetcher f4, PortsFetcher f5,
+											FilteredPortsFetcher f6, WebDetectFetcher f7, HTTPSenderFetcher f8, CommentFetcher f9,
+											NetBIOSInfoFetcher f10, MACFetcher f11, MACVendorFetcher f12) {
+		return addPlugins(Arrays.<Fetcher>asList(f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12), Fetcher.class, plugins);
+	}
+
+	@Provides @Singleton MACFetcher selectMacFetcher() {
+		return Platform.WINDOWS ? new WinMACFetcher() : new UnixMACFetcher();
+	}
+
+	@SuppressWarnings("unchecked")
+	private <T extends Plugin> List<T> addPlugins(List<T> original, Class<T> type, List<Class<? extends Plugin>> classes) {
+		List<T> result = new ArrayList<>(original);
+		for (Class clazz: classes) {
+			try {
+				if (type.isAssignableFrom(clazz))
+					result.add((T)clazz.newInstance());
+			}
+			catch (Exception e) {
+				throw new RuntimeException("Cannot instantiate plugin with default constructor: " + clazz.getName());
+			}
 		}
-	}
-
-	public MainWindow getMainWindow() {
-		// initialize all startable components
-		start();
-		// initialize and return the main window
-		return (MainWindow) container.getComponentInstance(MainWindow.class);
-	}
-
-	public CommandLineProcessor getCommandLineProcessor() {
-		start();
-		return (CommandLineProcessor) container.getComponentInstance(CommandLineProcessor.class);
+		return result;
 	}
 }

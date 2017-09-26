@@ -5,7 +5,6 @@
  */
 package net.azib.ipscan.gui.feeders;
 
-import net.azib.ipscan.config.Labels;
 import net.azib.ipscan.config.Platform;
 import net.azib.ipscan.feeders.Feeder;
 import net.azib.ipscan.feeders.FeederException;
@@ -13,11 +12,13 @@ import net.azib.ipscan.feeders.RangeFeeder;
 import net.azib.ipscan.gui.actions.FeederActions;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.*;
-import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
 
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
 import java.net.InetAddress;
 import java.net.InterfaceAddress;
 import java.net.UnknownHostException;
@@ -30,6 +31,7 @@ import static net.azib.ipscan.util.InetAddressUtils.*;
  * 
  * @author Anton Keks
  */
+@Singleton
 public class RangeFeederGUI extends AbstractFeederGUI {
 	private Text startIPText;
 	private Text endIPText;
@@ -40,7 +42,7 @@ public class RangeFeederGUI extends AbstractFeederGUI {
 	private boolean isEndIPUnedited = true;
 	private boolean modifyListenersDisabled = false;
 
-	public RangeFeederGUI(Composite parent) {
+	@Inject public RangeFeederGUI(@Named("feederArea") Composite parent) {
 		super(parent);
 		feeder = new RangeFeeder();
 	}
@@ -98,7 +100,6 @@ public class RangeFeederGUI extends AbstractFeederGUI {
 		startIPText.addListener(SWT.Modify, netmaskResetListener);
 		endIPText.addListener(SWT.Modify, netmaskResetListener);
 
-		ipUpButton.setImage(new Image(getDisplay(), Labels.getInstance().getImageAsStream("button.ipUp.img")));
 		ipUpButton.setText(getLabel("button.ipUp"));
 		ipUpButton.addSelectionListener(hostnameListener);
 

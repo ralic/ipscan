@@ -15,12 +15,10 @@ import java.util.logging.Level;
 public class Version {
 	public static final String NAME = "Angry IP Scanner";
 	
-	public static final String COPYLEFT = "© 2015 Anton Keks and contributors";
+	public static final String COPYLEFT = "© 2017 Anton Keks and contributors";
 	
 	public static final String WEBSITE = "http://angryip.org";
 	
-	public static final String MAILTO = "support@azib.net";
-
 	public static final String FAQ_URL = WEBSITE + "/faq/";
 
 	public static final String PRIVACY_URL = WEBSITE + "/about/privacy.html";
@@ -31,7 +29,13 @@ public class Version {
 	
 	public static final String DOWNLOAD_URL = WEBSITE + "/download/";
 
+	public static final String ISSUES_URL = WEBSITE + "/issues/";
+
+	public static final String IP_LOCATE_URL = WEBSITE + "/iplocate";
+
 	public static final String LATEST_VERSION_URL = WEBSITE + "/ipscan/IPSCAN.VERSION";
+
+	public static final String GA_ID = "UA-10776159-2";
 	
 	private static String version;
 	private static String buildDate;

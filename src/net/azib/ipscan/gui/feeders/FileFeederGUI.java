@@ -14,6 +14,10 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
 
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
+
 import static net.azib.ipscan.config.Labels.getLabel;
 
 /**
@@ -21,10 +25,11 @@ import static net.azib.ipscan.config.Labels.getLabel;
  *
  * @author Anton Keks
  */
+@Singleton
 public class FileFeederGUI extends AbstractFeederGUI {
 	private Text fileNameText;
 
-	public FileFeederGUI(Composite parent) {
+	@Inject public FileFeederGUI(@Named("feederArea") Composite parent) {
 		super(parent);
 		feeder = new FileFeeder();
 	}

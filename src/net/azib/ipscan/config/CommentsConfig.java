@@ -10,6 +10,8 @@ import net.azib.ipscan.core.ScanningResult;
 import net.azib.ipscan.core.ScanningResultList;
 import net.azib.ipscan.fetchers.MACFetcher;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.net.InetAddress;
 import java.util.prefs.Preferences;
 
@@ -18,10 +20,11 @@ import java.util.prefs.Preferences;
  *
  * @author Anton Keks
  */
+@Singleton
 public class CommentsConfig {
 	private Preferences preferences;
 
-	public CommentsConfig(Preferences preferences) {
+	@Inject public CommentsConfig(Preferences preferences) {
 		// use a separate node for comments - they can get large
 		this.preferences = preferences.node("comments");
 	}

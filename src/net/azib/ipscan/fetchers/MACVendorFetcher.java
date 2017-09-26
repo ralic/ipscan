@@ -1,8 +1,8 @@
 package net.azib.ipscan.fetchers;
 
 import net.azib.ipscan.core.ScanningSubject;
-import net.azib.ipscan.util.IOUtils;
 
+import javax.inject.Inject;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -14,7 +14,7 @@ public class MACVendorFetcher extends AbstractFetcher {
 	private static Map<String, String> vendors = new HashMap<String, String>();
 	private MACFetcher macFetcher;
 
-	public MACVendorFetcher(MACFetcher macFetcher) {
+	@Inject public MACVendorFetcher(MACFetcher macFetcher) {
 		this.macFetcher = macFetcher;
 	}
 
@@ -25,14 +25,13 @@ public class MACVendorFetcher extends AbstractFetcher {
 
 	@Override
 	public void init() {
-		BufferedReader reader = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/mac-vendors.txt")));
-		try {
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/mac-vendors.txt")))) {
 			String line;
 			while ((line = reader.readLine()) != null) {
+				if (line.isEmpty()) continue;
 				String prefix = line.substring(0, 2) + ':' + line.substring(2, 4) + ':' + line.substring(4, 6);
 				vendors.put(prefix, line.substring(6));
 			}
-			IOUtils.closeQuietly(reader);
 		}
 		catch (IOException e) {
 			throw new RuntimeException(e);

@@ -16,8 +16,9 @@ import net.azib.ipscan.exporters.Exporter;
 import net.azib.ipscan.exporters.ExporterRegistry;
 import net.azib.ipscan.feeders.FeederCreator;
 import net.azib.ipscan.feeders.FeederRegistry;
-import net.azib.ipscan.gui.actions.ScanMenuActions;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.io.File;
 
 /**
@@ -25,9 +26,9 @@ import java.io.File;
  *
  * @author Anton Keks
  */
+@Singleton
 public class CommandLineProcessor implements CommandProcessor, StateTransitionListener {
-	
-	private final FeederRegistry<FeederCreator> feederRegistry;
+	private final FeederRegistry<? extends FeederCreator> feederRegistry;
 	private final ExporterRegistry exporters;
 	private StateMachine stateMachine;
 	private ScanningResultList scanningResults;
@@ -41,12 +42,12 @@ public class CommandLineProcessor implements CommandProcessor, StateTransitionLi
 	boolean autoQuit;
 	boolean appendToFile;
 	
-	CommandLineProcessor(FeederRegistry<FeederCreator> feederCreators, ExporterRegistry exporters) {
+	CommandLineProcessor(FeederRegistry<? extends FeederCreator> feederCreators, ExporterRegistry exporters) {
 		this.feederRegistry = feederCreators;
 		this.exporters = exporters;		
 	}
-	
-	public CommandLineProcessor(FeederRegistry<FeederCreator> feederCreators, ExporterRegistry exporters, StateMachine stateMachine, ScanningResultList scanningResults) {
+
+	@Inject public CommandLineProcessor(FeederRegistry<? extends FeederCreator> feederCreators, ExporterRegistry exporters, StateMachine stateMachine, ScanningResultList scanningResults) {
 		this(feederCreators, exporters);
 		this.stateMachine = stateMachine;
 		this.scanningResults = scanningResults;
@@ -158,7 +159,6 @@ public class CommandLineProcessor implements CommandProcessor, StateTransitionLi
 			
 			// start scanning automatically
 			if (autoStart) {
-				ScanMenuActions.isLoadedFromFile = false;
 				stateMachine.transitionToNext();
 			}
 		}

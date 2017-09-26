@@ -1,6 +1,3 @@
-/**
- * 
- */
 package net.azib.ipscan.exporters;
 
 import net.azib.ipscan.config.Labels;
@@ -11,6 +8,7 @@ import net.azib.ipscan.fetchers.PingFetcher;
 import net.azib.ipscan.fetchers.PortsFetcher;
 import net.azib.ipscan.gui.feeders.AbstractFeederGUI;
 
+import javax.inject.Inject;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -22,8 +20,10 @@ import java.util.Date;
 import java.util.List;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static net.azib.ipscan.core.ScanningResult.ResultType.*;
 import static net.azib.ipscan.util.IOUtils.closeQuietly;
+import static net.azib.ipscan.util.InetAddressUtils.increment;
 
 /**
  * TXT Exporter
@@ -31,8 +31,9 @@ import static net.azib.ipscan.util.IOUtils.closeQuietly;
  * @author Anton Keks
  */
 public class TXTExporter extends AbstractExporter {
-	
 	int[] padLengths;
+
+	@Inject public TXTExporter() {}
 
 	public String getId() {
 		return "exporter.txt";
@@ -46,14 +47,15 @@ public class TXTExporter extends AbstractExporter {
 		super.start(outputStream, feederInfo);
 
 		if (!append) {
-			output.write(Labels.getLabel("exporter.txt.generated"));
+			output.print(Labels.getLabel("exporter.txt.generated"));
+			output.print(' ');
 			output.println(Version.getFullName());
 			output.println(Version.WEBSITE);
 			output.println();
-			
-			String scanned = Labels.getLabel("exporter.txt.scanned");
-			scanned = scanned.replaceFirst("%INFO", feederInfo);  
-			output.println(scanned);
+
+			output.print(Labels.getLabel("exporter.txt.scanned"));
+			output.print(' ');
+			output.println(feederInfo);
 			output.println(DateFormat.getDateTimeInstance().format(new Date()));
 			output.println();
 		}
@@ -72,7 +74,7 @@ public class TXTExporter extends AbstractExporter {
 		}
 	}
 
-	public void nextAdressResults(Object[] results) throws IOException {
+	public void nextAddressResults(Object[] results) throws IOException {
 		output.write(pad(results[0], padLengths[0]));
 		for (int i = 1; i < results.length; i++) {
 			Object result = results[i];
@@ -108,34 +110,48 @@ public class TXTExporter extends AbstractExporter {
 		try {
 			reader = new BufferedReader(new FileReader(fileName));
 
-			String originalStartIP = null;
-			String startIPAfterLoad = null;
-			String endIp = null;
+			String startIP = null;
+			String endIP = null;
+			String lastLoadedIP = null;
+			List<String> columns = emptyList();
 
 			int ipIndex = 0, pingIndex = 1, portsIndex = 3;
-			String ipLabel = Labels.getLabel(IPFetcher.ID);
-			int i = 0;
+
+			String[] lookingFor = {
+					Labels.getLabel("exporter.txt.scanned"),
+					Labels.getLabel(IPFetcher.ID)
+			};
+			int lookingForIndex = 0;
+
 			String line;
 			while ((line = reader.readLine()) != null) {
-				i++;
-				if (i == 1) continue;
-				String[] sp = line.split("\\s+");
+				String[] sp;
 
-				if (i == 4) {
-					originalStartIP = sp[1];
-					startIPAfterLoad = sp[1];
-					endIp = sp[3];
+				if (lookingForIndex < lookingFor.length) {
+					sp = line.split("\\s");
+
+					if (lookingFor[lookingForIndex].equals(sp[0])) {
+						if (lookingForIndex == 0) {
+							startIP = sp[1];
+							endIP = sp[3];
+							lookingForIndex++;
+						}
+						else if (lookingForIndex == 1) {
+							sp = line.split("\\s{2,}");
+							columns = asList(sp);
+							pingIndex = columns.indexOf(Labels.getLabel(PingFetcher.ID));
+							portsIndex = columns.indexOf(Labels.getLabel(PortsFetcher.ID));
+							lookingForIndex++;
+						}
+					}
+					continue;
 				}
 
-				if (ipLabel.equals(sp[ipIndex])) {
-					pingIndex = asList(sp).indexOf(Labels.getLabel(PingFetcher.ID));
-					portsIndex = asList(sp).indexOf(Labels.getLabel(PortsFetcher.ID));
-				}
-
-				if (sp.length < 3 || i < 8) continue;
+				sp = line.split("\\s{2,}");
+				if (sp.length < columns.size()) continue;
 
 				InetAddress addr = InetAddress.getByName(sp[ipIndex]);
-				startIPAfterLoad = sp[ipIndex];
+				lastLoadedIP = sp[ipIndex];
 
 				ScanningResult r = new ScanningResult(addr, sp.length);
 				if (portsIndex > 0 && sp[portsIndex].matches("\\d.*")) r.setType(WITH_PORTS);
@@ -146,7 +162,12 @@ public class TXTExporter extends AbstractExporter {
 				results.add(r);
 			}
 
-			feeder.unserialize(startIPAfterLoad, endIp);
+			if (lastLoadedIP != null && !lastLoadedIP.equals(endIP)) {
+				InetAddress nextStartIP = increment(InetAddress.getByName(lastLoadedIP));
+				startIP = nextStartIP.getHostAddress();
+			}
+
+			feeder.unserialize(startIP, endIP);
 			return results;
 		}
 		finally {

@@ -5,42 +5,45 @@
  */
 package net.azib.ipscan.gui.feeders;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-
 import net.azib.ipscan.config.GUIConfig;
 import net.azib.ipscan.feeders.Feeder;
 import net.azib.ipscan.feeders.FeederException;
 import net.azib.ipscan.feeders.FeederRegistry;
 import net.azib.ipscan.feeders.RescanFeeder;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.TableItem;
+
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * FeederGUIRegistry
  *
  * @author Anton Keks
  */
+@Singleton
 public class FeederGUIRegistry implements FeederRegistry<AbstractFeederGUI> {
 	
 	private final List<AbstractFeederGUI> feederGUIList;
-	private final Combo feederSelectionCombo;	
+	private final Combo feederSelectionCombo;
 	private final GUIConfig guiConfig;
 	
-	Feeder lastScanFeeder;
+	Feeder lastFeeder;
 	private AbstractFeederGUI currentFeederGUI;
 	
-	public FeederGUIRegistry(AbstractFeederGUI[] allTheFeeders, Combo feederSelectionCombo, GUIConfig guiConfig) {
-		this.feederGUIList = Arrays.asList(allTheFeeders);
+	@Inject public FeederGUIRegistry(List<AbstractFeederGUI> allTheFeeders, @Named("feederSelectionCombo") Combo feederSelectionCombo, GUIConfig guiConfig) {
+		this.feederGUIList = allTheFeeders;
 		this.feederSelectionCombo = feederSelectionCombo;
 		for (AbstractFeederGUI feederGUI : feederGUIList) {
 			feederSelectionCombo.add(feederGUI.getFeederName());	
 		}
 		this.guiConfig = guiConfig;
-		this.currentFeederGUI = allTheFeeders[0];
+		this.currentFeederGUI = allTheFeeders.get(0);
+		this.lastFeeder = currentFeederGUI.createFeeder();
 	}
 	
 	public AbstractFeederGUI current() {
@@ -87,8 +90,8 @@ public class FeederGUIRegistry implements FeederRegistry<AbstractFeederGUI> {
 	 * @return new Feeder initialized using the currently selected Feeder GUI
 	 */
 	public Feeder createFeeder() {
-		lastScanFeeder = current().createFeeder(); 
-		return lastScanFeeder;
+		lastFeeder = current().createFeeder();
+		return lastFeeder;
 	}
 
 	/**
@@ -100,6 +103,6 @@ public class FeederGUIRegistry implements FeederRegistry<AbstractFeederGUI> {
 		for (int i = 0; i < selection.length; i++) {
 			addresses[i] = selection[i].getText();
 		}
-		return new RescanFeeder(lastScanFeeder, addresses);
+		return new RescanFeeder(lastFeeder, addresses);
 	}
 }

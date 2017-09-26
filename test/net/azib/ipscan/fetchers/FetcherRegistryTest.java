@@ -1,19 +1,16 @@
-/**
- * 
- */
 package net.azib.ipscan.fetchers;
 
-import net.azib.ipscan.core.ScanningSubject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.picocontainer.MutablePicoContainer;
-import org.picocontainer.defaults.DefaultPicoContainer;
 
 import java.util.Iterator;
 import java.util.prefs.Preferences;
 
+import static java.util.Arrays.asList;
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 
 /**
  * @author Anton Keks
@@ -39,7 +36,7 @@ public class FetcherRegistryTest {
 		hostnameFetcher = new HostnameFetcher();
 		commentFetcher = new CommentFetcher(null);
 		portsFetcher = new PortsFetcher(null);
-		fetcherRegistry = new FetcherRegistry(new Fetcher[] {ipFetcher, pingFetcher, hostnameFetcher, commentFetcher, portsFetcher}, preferences, null);
+		fetcherRegistry = new FetcherRegistry(asList(ipFetcher, pingFetcher, hostnameFetcher, commentFetcher, portsFetcher), preferences, null);
 	}
 	
 	@After
@@ -72,18 +69,18 @@ public class FetcherRegistryTest {
 	@Test
 	public void testLoadPreferences() throws Exception {
 		preferences.remove(FetcherRegistry.PREFERENCE_SELECTED_FETCHERS);
-		fetcherRegistry = new FetcherRegistry(new Fetcher[] {ipFetcher, hostnameFetcher, commentFetcher}, preferences, null);
+		fetcherRegistry = new FetcherRegistry(asList(ipFetcher, hostnameFetcher, commentFetcher), preferences, null);
 		assertEquals(4, fetcherRegistry.getSelectedFetchers().size());
 		
 		preferences.put(FetcherRegistry.PREFERENCE_SELECTED_FETCHERS, hostnameFetcher.getId() + "###" + commentFetcher.getId());
-		fetcherRegistry = new FetcherRegistry(new Fetcher[] {ipFetcher, hostnameFetcher, commentFetcher}, preferences, null);
+		fetcherRegistry = new FetcherRegistry(asList(ipFetcher, hostnameFetcher, commentFetcher), preferences, null);
 		assertEquals(2, fetcherRegistry.getSelectedFetchers().size());
 		Iterator<?> iterator = fetcherRegistry.getSelectedFetchers().iterator();
 		assertSame(hostnameFetcher, iterator.next());
 		assertSame(commentFetcher, iterator.next());
 		
 		preferences.put(FetcherRegistry.PREFERENCE_SELECTED_FETCHERS, "not-existing-fetcher###" + hostnameFetcher.getId());
-		fetcherRegistry = new FetcherRegistry(new Fetcher[] {ipFetcher, hostnameFetcher}, preferences, null);
+		fetcherRegistry = new FetcherRegistry(asList(ipFetcher, hostnameFetcher), preferences, null);
 		assertEquals(1, fetcherRegistry.getSelectedFetchers().size());
 	}
 	
@@ -93,14 +90,14 @@ public class FetcherRegistryTest {
 		fetcherRegistry.updateSelectedFetchers(new String[] {ipFetcher.getId()});
 		assertEquals(1, fetcherRegistry.getSelectedFetchers().size());
 		Iterator<?> iterator = fetcherRegistry.getSelectedFetchers().iterator();
-		assertEquals(ipFetcher.getId(), ((Fetcher)iterator.next()).getId());
+		assertEquals(ipFetcher.getId(), ((Fetcher) iterator.next()).getId());
 		assertEquals(ipFetcher.getId(), preferences.get(FetcherRegistry.PREFERENCE_SELECTED_FETCHERS, null));
 		
 		// now return a fetcher back
-		fetcherRegistry.updateSelectedFetchers(new String[] {commentFetcher.getId(), ipFetcher.getId()});
+		fetcherRegistry.updateSelectedFetchers(new String[]{commentFetcher.getId(), ipFetcher.getId()});
 		assertEquals(2, fetcherRegistry.getSelectedFetchers().size());
 		iterator = fetcherRegistry.getSelectedFetchers().iterator();
-		assertEquals(commentFetcher.getId(), ((Fetcher)iterator.next()).getId());
+		assertEquals(commentFetcher.getId(), ((Fetcher) iterator.next()).getId());
 		assertEquals(ipFetcher.getId(), ((Fetcher)iterator.next()).getId());
 		assertEquals(commentFetcher.getId() + "###" + ipFetcher.getId(), preferences.get(FetcherRegistry.PREFERENCE_SELECTED_FETCHERS, null));
 	}
@@ -115,57 +112,36 @@ public class FetcherRegistryTest {
 				listenerWasCalled[0] = true;
 			}
 		});
-		fetcherRegistry.updateSelectedFetchers(new String[] {});
+		fetcherRegistry.updateSelectedFetchers(new String[]{});
 		assertTrue(listenerWasCalled[0]);
 	}
+
+	@Test(expected = FetcherException.class)
+	public void openUneditableFetcher() {
+		fetcherRegistry.openPreferencesEditor(ipFetcher);
+	}
+
+	private final static String MESSAGE = "foo bar";
 	
 	@Test
-	public void testOpenPreferencesEditor() throws Exception {
-		String message = "foo bar";
-		MutablePicoContainer container = new DefaultPicoContainer();
-		container.registerComponentInstance(message);
-		
-		Fetcher editableFetcher = new EditableFetcher();
-		fetcherRegistry = new FetcherRegistry(new Fetcher[] {ipFetcher, editableFetcher}, preferences, container);
-		
-		EditableFetcherPrefs.calledWithMessage = null;
-		fetcherRegistry.openPreferencesEditor(editableFetcher);		
-		assertSame(message, EditableFetcherPrefs.calledWithMessage);
-		assertSame(editableFetcher, EditableFetcherPrefs.calledForFetcher);
+	public void openPreferencesEditor() {
+		Fetcher editableFetcher = mock(Fetcher.class);
+		doReturn(EditableFetcherPrefs.class).when(editableFetcher).getPreferencesClass();
+		fetcherRegistry = new FetcherRegistry(asList(ipFetcher, editableFetcher), preferences, null);
 
-		try {
-			fetcherRegistry.openPreferencesEditor(ipFetcher);
-			fail("This fetcher is not editable");
-		}
-		catch (FetcherException e) {
-		}
+		EditableFetcherPrefs.calledWithMessage = null;
+		fetcherRegistry.openPreferencesEditor(editableFetcher);
+
+		assertSame(MESSAGE, EditableFetcherPrefs.calledWithMessage);
+		assertSame(editableFetcher, EditableFetcherPrefs.calledForFetcher);
 	}
-	
-	public static class EditableFetcher extends AbstractFetcher {
-		public String getId() {
-			return null;
-		}
-		public Object scan(ScanningSubject subject) {
-			return null;
-		}
-		@Override
-		public Class<? extends FetcherPrefs> getPreferencesClass() {
-			return EditableFetcherPrefs.class;
-		}
-	}
-	
+
 	public static class EditableFetcherPrefs implements FetcherPrefs {
 		private static String calledWithMessage;
 		private static Fetcher calledForFetcher;
-		
-		private String message;
-
-		public EditableFetcherPrefs(String message) {
-			this.message = message;
-		}
 
 		public void openFor(Fetcher fetcher) {
-			calledWithMessage = message;
+			calledWithMessage = MESSAGE;
 			calledForFetcher = fetcher;
 		}		
 	}

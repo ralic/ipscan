@@ -24,7 +24,7 @@ import java.util.logging.Logger;
  * @author Anton Keks
  */
 public final class Labels {
-
+	public static final String[] LANGUAGES = { "system", "en", "ru", "de", "hu", "lt", "es", "it", "ku", "tr", "gr"};
 	private static final Logger LOG = Logger.getLogger(Labels.class.getName());
 	private static Labels instance;
 
@@ -37,10 +37,10 @@ public final class Labels {
 		initialize(Locale.getDefault());
 	}
 	
-	private Labels() {
+	Labels() {
 		// private constructor
 	}
-	
+
 	public static Labels getInstance() {
 		return instance;
 	}
@@ -59,38 +59,29 @@ public final class Labels {
 		instance = new Labels();
 		
 		instance.locale = locale;
-		InputStream labelsStream = null;
-		try {
-			labelsStream = Labels.class.getClassLoader().getResourceAsStream("messages.properties");
+		try (InputStream labelsStream = Labels.class.getClassLoader().getResourceAsStream("messages.properties")) {
 			if (labelsStream == null) {
 				throw new MissingResourceException("Labels not found!", Labels.class.getName(), "messages");
 			}
 			instance.labelsFallback = new PropertyResourceBundle(new InputStreamReader(labelsStream, "UTF-8"));
-			labelsStream.close();
 		}
 		catch (IOException e) {
 			throw new MissingResourceException(e.toString(), Labels.class.getName(), "messages");
 		}
 		
-		try {
-			labelsStream = Labels.class.getClassLoader().getResourceAsStream("messages_" + locale.getLanguage() + ".properties");
+		try (InputStream labelsStream = Labels.class.getClassLoader().getResourceAsStream("messages_" + locale.toString() + ".properties")) {
 			instance.labels = new PropertyResourceBundle(new InputStreamReader(labelsStream, "UTF-8"));
-			labelsStream.close();
 		}
 		catch (Exception e) {
-			instance.labels = instance.labelsFallback;
+			try (InputStream labelsStream = Labels.class.getClassLoader().getResourceAsStream("messages_" + locale.getLanguage() + ".properties")) {
+				instance.labels = new PropertyResourceBundle(new InputStreamReader(labelsStream, "UTF-8"));
+			}
+			catch (Exception e2) {
+				instance.labels = instance.labelsFallback;
+			}
 		}
 	}
-	
-	/**
-	 * Retrieves an InputStream to load the image, specified by a key in resource file.
-	 * @param key
-	 */
-	public InputStream getImageAsStream(String key) {
-		String imagePath = get(key);
-		return getClass().getClassLoader().getResourceAsStream(imagePath);
-	}
-	
+
 	/**
 	 * Retrieves a String specified by the label key
 	 * @param key

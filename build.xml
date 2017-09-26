@@ -5,10 +5,9 @@
 	<property name="dist" value="dist"/>
 	<property name="test" value="test"/>
 	<property name="resources" value="resources"/>
-	<property name="testresults" value="test-results"/>
-			
+
 	<property name="name" value="Angry IP Scanner"/>
-	<property name="version" value="3.3.3"/>
+	<property name="version" value="3.5.2"/>
 	<property name="main.class" value="net.azib.ipscan.Main"/>
 	<property name="swt" value="lib"/>
 	<property name="ext.src" value="ext/rocksaw/src:ext/vserv-tcpip/src"/>
@@ -91,7 +90,6 @@
 		<delete dir="${bin}.win32"/>
 		<delete dir="${bin}.win64"/>
 		<delete dir="${bin}.mac"/>
-		<delete dir="${testresults}"/>
     </target>
 
 	<macrodef name="compile">
@@ -103,7 +101,7 @@
 		<attribute name="dest" default="${bin}.@{platform}"/>
 		<sequential>
 			<mkdir dir="@{dest}"/>
-			<javac destdir="@{dest}" debug="@{debug}" source="1.6" target="1.6" optimize="@{optimize}" encoding="UTF-8">
+			<javac destdir="@{dest}" debug="@{debug}" source="1.7" target="1.7" optimize="@{optimize}" encoding="UTF-8">
 				<src path="@{path}"/>
 				<src path="@{extpath}"/>
 				<classpath>
@@ -156,8 +154,6 @@
 	</target>
 	
 	<target name="test" depends="clean,compile,compile-tests">
-		<delete dir="${testresults}"/>
-		<mkdir dir="${testresults}"/>
 		<delete file="coverage.ec"/>
 		<junit haltonfailure="true" showoutput="true" fork="yes">
 			<classpath>
@@ -166,7 +162,7 @@
 				<fileset dir="lib" includes="**/*.jar"/>
 			</classpath>
 			<formatter type="brief" usefile="no"/>
-			<batchtest todir="${testresults}">
+			<batchtest>
 				<fileset dir="${testbin}" includes="**/*Test.class"/>
 			</batchtest>
 		</junit>
@@ -190,7 +186,8 @@
 		<attribute name="platform"/>
 		<sequential>
 			<mkdir dir="${dist}"/>
-			<unzip src="lib/picocontainer-1.0.jar" dest="${bin}.@{platform}"/>
+			<unzip src="lib/dagger-2.8.jar" dest="${bin}.@{platform}"/>
+			<unzip src="lib/javax.inject-1.jar" dest="${bin}.@{platform}"/>
 			<unzip src="${swt}/swt-@{platform}.jar" dest="${bin}.@{platform}"/>
 			<delete includeemptydirs="true" failonerror="false">
 				<fileset dir="${bin}.@{platform}/images" includes="**/*.svg"/>
@@ -249,6 +246,7 @@
 			<jar destfile="${dist}/${ant.project.name}-@{platform}-orig.jar" >
 				<manifest>
 					<attribute name="Main-Class" value="${main.class}"/>
+					<attribute name="Class-Path" value="."/>
 					<attribute name="Title" value="${name}"/>
 					<attribute name="Version" value="${version}"/>
 					<attribute name="Git-SHA1" value="${build.sha1}"/>
@@ -435,12 +433,13 @@
 
 	<target name="win-installer" depends="clean,compile-win32,compile-win64,package-win32,package-win64">
 		<replace file="${win.installer.dir}/InstallerConfig.nsh">
-			<replacefilter token="VERSION_MINOR" value="2"/>
+			<replacefilter token="VERSION_MINOR" value="5"/>
 			<replacefilter token="VERSION" value="${version}"/>
 		</replace>
 		<copy file="${dist}/${ant.project.name}-win32-${version}.exe" tofile="${win.installer.dir}/AppFiles32/ipscan.exe"/>
 		<copy file="${dist}/${ant.project.name}-win64-${version}.exe" tofile="${win.installer.dir}/AppFiles64/ipscan.exe"/>
-		<exec dir="${win.installer.dir}" executable="${win.installer.dir}/NSISPortable/App/NSIS/makensis.exe">
+		<exec dir="${win.installer.dir}" executable="wine">
+			<arg value="${win.installer.dir}/NSISPortable/App/NSIS/makensis.exe"/>
 			<arg value="Installer/Installer.nsi"/>
 		</exec>
 		<move file="${win.installer.dir}/ipscan-${version}-setup.exe" todir="${dist}"/>

@@ -1,9 +1,7 @@
-/**
- * 
- */
 package net.azib.ipscan.config;
 
 import java.util.Locale;
+import java.util.UUID;
 import java.util.prefs.Preferences;
 
 /**
@@ -19,25 +17,31 @@ public final class Config {
 	
 	private Preferences preferences;
 	public String language;
+	public String uuid;
 
 	/** easily accessible scanner configuration */
 	private ScannerConfig scannerConfig;
 	/** various GUI preferences and dimensions are stored here */
 	private GUIConfig guiConfig;
 	/** favorites are stored here */
-	private NamedListConfig favoritesConfig;
+	private FavoritesConfig favoritesConfig;
 	/** openers are stored here */
 	private OpenersConfig openersConfig;
 
-	private Config() {
+	Config() {
 		preferences = Preferences.userRoot().node("ipscan");
 		scannerConfig = new ScannerConfig(preferences);
 		guiConfig = new GUIConfig(preferences);
 		favoritesConfig = new FavoritesConfig(preferences);
 		openersConfig = new OpenersConfig(preferences);
 		language = preferences.get("language", "system");
+		uuid = preferences.get("uuid", null);
+		if (uuid == null) {
+			uuid = UUID.randomUUID().toString();
+			preferences.put("uuid", uuid);
+		}
 	}
-	
+
 	/**
 	 * Initializes the singleton instance
 	 */
@@ -50,6 +54,7 @@ public final class Config {
 
 	public void store() {
 		preferences.put("language", language);
+		preferences.put("uuid", uuid);
 		scannerConfig.store();
 		guiConfig.store();
 		favoritesConfig.store();
@@ -70,14 +75,14 @@ public final class Config {
 	/**
 	 * @return Favorites config (only local access)
 	 */
-	NamedListConfig forFavorites() {
+	FavoritesConfig forFavorites() {
 		return favoritesConfig;
 	}
 
 	/**
 	 * @return Openers config (only local access);
 	 */
-	OpenersConfig forOpeners() {
+	public OpenersConfig forOpeners() {
 		return openersConfig;
 	}
 	
@@ -95,5 +100,9 @@ public final class Config {
 		else {
 			return new Locale(language);
 		}
+	}
+
+	public String getUUID() {
+		return uuid;
 	}
 }

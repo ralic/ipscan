@@ -1,12 +1,16 @@
 package net.azib.ipscan.core;
 
+import dagger.Module;
+import dagger.Provides;
 import net.azib.ipscan.config.LoggerFactory;
-import org.picocontainer.MutablePicoContainer;
 
+import javax.inject.Singleton;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.logging.Logger;
@@ -28,29 +32,35 @@ import java.util.logging.Logger;
  * </ul>
  * In either way, all plugins must implement {@link net.azib.ipscan.core.Plugin} and one or more of the concrete interfaces.
  */
+@Module
 public class PluginLoader {
-    static final Logger LOG = LoggerFactory.getLogger();
+    private static final Logger LOG = LoggerFactory.getLogger();
 
-    public void addTo(MutablePicoContainer container) {
+	@Provides @Singleton
+	public List<Class<? extends Plugin>> getClasses() {
+		List<Class<? extends Plugin>> container = new ArrayList<Class<? extends Plugin>>();
+
 		loadPluginsSpecifiedInSystemProperties(container);
 		loadPluginJars(container, getOwnFile());
 		loadPluginJars(container, new File(System.getProperty("user.home"), ".ipscan/placeholder"));
-    }
 
-	void loadPluginsSpecifiedInSystemProperties(MutablePicoContainer container) {
+		return container;
+	}
+
+	void loadPluginsSpecifiedInSystemProperties(List<Class<? extends Plugin>> container) {
 		String plugins = System.getProperty("ipscan.plugins");
 		if (plugins != null) {
 			loadPluginClasses(container, getClass().getClassLoader(), plugins);
 		}
 	}
 
-	private void loadPluginClasses(MutablePicoContainer container, ClassLoader classLoader, String csvNames) {
+	private void loadPluginClasses(List<Class<? extends Plugin>> container, ClassLoader classLoader, String csvNames) {
 		String[] classes = csvNames.split("\\s*,\\s*");
 		for (String className : classes) {
 			try {
 				Class clazz = Class.forName(className, true, classLoader);
 				if (Plugin.class.isAssignableFrom(clazz))
-					container.registerComponentImplementation(clazz);
+					container.add(clazz);
 				else
 					LOG.warning("Plugin class " + clazz.getName() + " is not assignable to " + Plugin.class.getName());
 			}
@@ -60,15 +70,17 @@ public class PluginLoader {
 		}
 	}
 
-	void loadPluginJars(MutablePicoContainer container, final File ownFile) {
-		if (!ownFile.getParentFile().exists()) return;
+	void loadPluginJars(List<Class<? extends Plugin>> container, final File ownFile) {
+		File parentDir = ownFile.getParentFile();
+		if (parentDir == null || !parentDir.exists()) return;
 
-		File[] jars = ownFile.getParentFile().listFiles(new FilenameFilter() {
+		File[] jars = parentDir.listFiles(new FilenameFilter() {
 			@Override
 			public boolean accept(File dir, String name) {
 				return name.endsWith(".jar") && !name.equals(ownFile.getName());
 			}
 		});
+		if (jars == null) return;
 
 		PluginClassLoader loader = new PluginClassLoader();
 		for (File jar : jars) {

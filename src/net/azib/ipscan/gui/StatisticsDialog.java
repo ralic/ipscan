@@ -6,13 +6,14 @@
 
 package net.azib.ipscan.gui;
 
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
-
 import net.azib.ipscan.config.Labels;
 import net.azib.ipscan.core.ScanningResultList;
-import net.azib.ipscan.core.UserErrorException;
 import net.azib.ipscan.core.ScanningResultList.ScanInfo;
+import net.azib.ipscan.core.UserErrorException;
+
+import javax.inject.Inject;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 
 /**
  * StatisticsDialog - shows statistical information about the last scan
@@ -23,7 +24,7 @@ public class StatisticsDialog extends InfoDialog {
 	
 	private final ScanningResultList scanningResults;
 
-	public StatisticsDialog(ScanningResultList scanningResults) {
+	@Inject public StatisticsDialog(ScanningResultList scanningResults) {
 		super(Labels.getLabel("title.statistics"), null);
 		this.scanningResults = scanningResults;
 	}
@@ -76,7 +77,7 @@ public class StatisticsDialog extends InfoDialog {
 		double totalSeconds = scanTime/1000;
 		double totalMinutes = totalSeconds/60;
 		double totalHours = totalMinutes/60;
-		NumberFormat format = new DecimalFormat("#.#");
+		NumberFormat format = new DecimalFormat("#.##");
 		if (totalHours >= 1)
 			return format.format(totalHours) + Labels.getLabel("unit.hour");
 		if (totalMinutes >= 1)

@@ -5,10 +5,11 @@
  */
 package net.azib.ipscan.fetchers;
 
-import org.picocontainer.MutablePicoContainer;
-import org.picocontainer.PicoContainer;
-import org.picocontainer.defaults.DefaultPicoContainer;
+import net.azib.ipscan.gui.PreferencesDialog;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.lang.reflect.Constructor;
 import java.util.*;
 import java.util.prefs.Preferences;
 
@@ -18,9 +19,12 @@ import java.util.prefs.Preferences;
  *
  * @author Anton Keks
  */
+@Singleton
 public class FetcherRegistry {
 	static final String PREFERENCE_SELECTED_FETCHERS = "selectedFetchers";
-	private Preferences preferences;
+
+	private final Preferences preferences;
+	private final PreferencesDialog preferencesDialog;
 	
 	/** All available Fetcher implementations, List of Fetcher instances */
 	private Map<String, Fetcher> registeredFetchers;
@@ -28,28 +32,25 @@ public class FetcherRegistry {
 	/** Selected for scanning Fetcher implementations, keys are fetcher labels, values are Fetcher instances */
 	private Map<String, Fetcher> selectedFetchers;
 	
-	/** PicoContainer for FetcherPrefs components */
-	private PicoContainer prefsContainer;
-
 	/** A collection of update listeners - observers of FetcherRegistry */
 	private List<FetcherRegistryUpdateListener> updateListeners = new ArrayList<FetcherRegistryUpdateListener>();
 		
-	public FetcherRegistry(Fetcher[] registeredFetchers, Preferences preferences, PicoContainer parentContainer) {
+	@Inject public FetcherRegistry(List<Fetcher> fetchers, Preferences preferences, PreferencesDialog preferencesDialog) {
 		this.preferences = preferences;
-		MutablePicoContainer prefsContainer = new DefaultPicoContainer(parentContainer);
-		
-		this.registeredFetchers = new LinkedHashMap<String, Fetcher>(registeredFetchers.length);
-		for (Fetcher fetcher : registeredFetchers) {
-			this.registeredFetchers.put(fetcher.getId(), fetcher);
-			Class<? extends FetcherPrefs> prefsClass = fetcher.getPreferencesClass();
-			if (prefsClass != null && prefsContainer.getComponentAdapterOfType(prefsClass) == null)
-				prefsContainer.registerComponentImplementation(prefsClass);
-		}
-		this.registeredFetchers = Collections.unmodifiableMap(this.registeredFetchers);
-		this.prefsContainer = prefsContainer;
-		
+		this.preferencesDialog = preferencesDialog;
+
+		registeredFetchers = createFetchersMap(fetchers);
+
 		// now load the preferences to init selected fetchers
 		loadSelectedFetchers(preferences);
+	}
+
+	private Map<String, Fetcher> createFetchersMap(List<Fetcher> fetchers) {
+		Map<String, Fetcher> registeredFetchers = new LinkedHashMap<String, Fetcher>(fetchers.size());
+		for (Fetcher fetcher : fetchers) {
+			registeredFetchers.put(fetcher.getId(), fetcher);
+		}
+		return Collections.unmodifiableMap(registeredFetchers);
 	}
 
 	private void loadSelectedFetchers(Preferences preferences) {
@@ -154,11 +155,26 @@ public class FetcherRegistry {
    * @throws FetcherException if preferences editor doesn't exist
    */
 	public void openPreferencesEditor(Fetcher fetcher) throws FetcherException {
-		Class<? extends FetcherPrefs> prefsClass = fetcher.getPreferencesClass();
-		if (prefsClass == null)
+		Class<? extends FetcherPrefs> prefsEditorClass = fetcher.getPreferencesClass();
+		if (prefsEditorClass == null)
 			throw new FetcherException("preferences.notAvailable");
 
-		FetcherPrefs prefs = (FetcherPrefs) prefsContainer.getComponentInstanceOfType(prefsClass);
-		prefs.openFor(fetcher);
+		try {
+			FetcherPrefs prefs = createFetcherPrefsEditor(prefsEditorClass);
+			prefs.openFor(fetcher);
+		}
+		catch (Exception e) {
+			throw new RuntimeException("Cannot instantiate fetcher preference editor: " + prefsEditorClass.getName());
+		}
+	}
+
+	private FetcherPrefs createFetcherPrefsEditor(Class<? extends FetcherPrefs> prefsClass) throws Exception {
+		try {
+			Constructor<? extends FetcherPrefs> constructor = prefsClass.getConstructor(PreferencesDialog.class);
+			return constructor.newInstance(preferencesDialog);
+		}
+		catch (NoSuchMethodException e) {
+			return prefsClass.newInstance();
+		}
 	}
 }

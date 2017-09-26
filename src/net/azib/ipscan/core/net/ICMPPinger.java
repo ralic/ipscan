@@ -20,7 +20,7 @@ import java.net.UnknownHostException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static net.azib.ipscan.util.IOUtils.*;
+import static net.azib.ipscan.util.IOUtils.closeQuietly;
 
 /**
  * Pinging code is encapsulated here.

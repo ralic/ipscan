@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.*;
-import static net.azib.ipscan.util.IOUtils.*;
+import static net.azib.ipscan.util.IOUtils.closeQuietly;
 
 /**
  * Shared multi-threaded pinger.

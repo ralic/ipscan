@@ -5,9 +5,9 @@
  */
 package net.azib.ipscan.config;
 
-import java.util.prefs.Preferences;
-
 import net.azib.ipscan.feeders.FeederCreator;
+
+import java.util.prefs.Preferences;
 
 /**
  * FavoritesConfig

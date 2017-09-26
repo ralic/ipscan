@@ -9,6 +9,7 @@ import net.azib.ipscan.config.*;
 import net.azib.ipscan.core.UserErrorException;
 import net.azib.ipscan.gui.InfoDialog;
 import net.azib.ipscan.gui.MainWindow;
+import net.azib.ipscan.util.GoogleAnalytics;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.widgets.Display;
@@ -58,13 +59,14 @@ public class Main {
 
 			LOG.finer("Labels and Config initialized after " + (System.currentTimeMillis() - startTime));
 
-			ComponentRegistry componentRegistry = new ComponentRegistry();
-			LOG.finer("ComponentRegistry initialized after " + (System.currentTimeMillis() - startTime));
+			MainComponent mainComponent = DaggerMainComponent.create();
+			if (Platform.MAC_OS) mainComponent.createMacApplicationMenu();
+			LOG.finer("Components initialized after " + (System.currentTimeMillis() - startTime));
 
-			processCommandLine(args, componentRegistry);
+			processCommandLine(args, mainComponent);
 
 			// create the main window using dependency injection
-			MainWindow mainWindow = componentRegistry.getMainWindow();
+			MainWindow mainWindow = mainComponent.createMainWindow();
 			LOG.fine("Startup time: " + (System.currentTimeMillis() - startTime));
 
 			while (!mainWindow.isDisposed()) {
@@ -72,9 +74,9 @@ public class Main {
 					if (!display.readAndDispatch())
 						display.sleep();
 				}
-				catch (Throwable e) {
-					if (e instanceof SWTException && e.getCause() != null)
-						e = e.getCause();
+				catch (Exception e) {
+					if (e instanceof SWTException && e.getCause() instanceof Exception)
+						e = (Exception) e.getCause();
 
 					// display a nice error message
 					String localizedMessage = getLocalizedMessage(e);
@@ -92,20 +94,28 @@ public class Main {
 			display.dispose();
 		}
 		catch (UnsatisfiedLinkError e) {
-			JOptionPane.showMessageDialog(null, "Failed to load native code. Probably you are using a binary built for wrong OS or CPU. If 64-bit binary doesn't work for you, try 32-bit version, or vice versa.");
+			JOptionPane.showMessageDialog(null, "Failed to load native code: " + e.getMessage() + "\nProbably you are using a binary built for wrong OS or CPU. If 64-bit binary doesn't work for you, try 32-bit version, or vice versa.");
 			e.printStackTrace();
+			new GoogleAnalytics().report(e);
 		}
 		catch (Throwable e) {
 			JOptionPane.showMessageDialog(null, e + "\nPlease submit a bug report mentioning your OS and what were you doing.");
 			e.printStackTrace();
+			new GoogleAnalytics().report(e);
 		}
 	}
 
 	private static void showMessage(Shell parent, int flags, String title, String localizedMessage) {
-		MessageBox messageBox = new MessageBox(parent, SWT.OK | SWT.SHEET | flags);
-		messageBox.setText(title);
-		messageBox.setMessage(localizedMessage);
-		messageBox.open();
+		try {
+			MessageBox messageBox = new MessageBox(parent, SWT.OK | SWT.SHEET | flags);
+			messageBox.setText(title);
+			messageBox.setMessage(localizedMessage);
+			messageBox.open();
+		}
+		catch (NoClassDefFoundError e) {
+			new GoogleAnalytics().report(localizedMessage, e);
+			JOptionPane.showMessageDialog(null, localizedMessage);
+		}
 	}
 
 	private static void initSystemProperties() {
@@ -116,9 +126,9 @@ public class Main {
 		Security.setProperty("networkaddress.cache.negative.ttl", "0");
 	}
 
-	private static void processCommandLine(String[] args, ComponentRegistry componentRegistry) {
+	private static void processCommandLine(String[] args, MainComponent mainComponent) {
 		if (args.length != 0) {
-			CommandLineProcessor cli = componentRegistry.getCommandLineProcessor();
+			CommandLineProcessor cli = mainComponent.createCommandLineProcessor();
 			try {
 				cli.parse(args);
 			}

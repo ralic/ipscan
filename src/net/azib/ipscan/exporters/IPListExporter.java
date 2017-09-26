@@ -1,15 +1,13 @@
-/**
- * 
- */
 package net.azib.ipscan.exporters;
-
-import java.io.IOException;
 
 import net.azib.ipscan.config.Labels;
 import net.azib.ipscan.core.PortIterator;
 import net.azib.ipscan.core.values.NumericRangeList;
 import net.azib.ipscan.fetchers.IPFetcher;
 import net.azib.ipscan.fetchers.PortsFetcher;
+
+import javax.inject.Inject;
+import java.io.IOException;
 
 /**
  * IP List Exporter
@@ -19,11 +17,12 @@ import net.azib.ipscan.fetchers.PortsFetcher;
  * @author Anton Keks
  */
 public class IPListExporter extends AbstractExporter {
-
 	static final char DELIMETER = ':';
 	
 	private int ipFetcherIndex;
 	private int portsFetcherIndex;
+
+	@Inject public IPListExporter() {}
 
 	public String getId() {
 		return "exporter.ipList";
@@ -56,7 +55,7 @@ public class IPListExporter extends AbstractExporter {
 		throw new ExporterException("fetcher.notFound");
 	}
 
-	public void nextAdressResults(Object[] results) throws IOException {
+	public void nextAddressResults(Object[] results) throws IOException {
 		String address = results[ipFetcherIndex].toString(); 
 		Object ports = results[portsFetcherIndex];
 		

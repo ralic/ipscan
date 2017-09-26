@@ -9,6 +9,7 @@ import net.azib.ipscan.core.ScanningSubject;
 import net.azib.ipscan.util.MDNSResolver;
 import net.azib.ipscan.util.NetBIOSResolver;
 
+import javax.inject.Inject;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -46,14 +47,17 @@ public class HostnameFetcher extends AbstractFetcher {
 
 	public static final String ID = "fetcher.hostname";
 
+	@Inject public HostnameFetcher() {}
+
 	public String getId() {
 		return ID;
 	}
 
+	@SuppressWarnings("PrimitiveArrayArgumentToVariableArgMethod")
 	private String resolveWithRegularDNS(InetAddress ip) {
 		try {
 			// faster way to do lookup - getCanonicalHostName() actually does both reverse and forward lookups inside
-			return (String)getHostByAddr.invoke(inetAddressImpl, ip.getAddress());
+			return (String) getHostByAddr.invoke(inetAddressImpl, ip.getAddress());
 		}
 		catch (Exception e) {
 			if (e instanceof InvocationTargetException && e.getCause() instanceof UnknownHostException)
@@ -72,10 +76,7 @@ public class HostnameFetcher extends AbstractFetcher {
 			resolver.close();
 			return name;
 		}
-		catch (SocketTimeoutException e) {
-			return null;
-		}
-		catch (SocketException e) {
+		catch (SocketTimeoutException | SocketException e) {
 			return null;
 		}
 		catch (Exception e) {
@@ -91,10 +92,7 @@ public class HostnameFetcher extends AbstractFetcher {
 			resolver.close();
 			return names == null ? null : names[0];
 		}
-		catch (SocketTimeoutException e) {
-			return null;
-		}
-		catch (SocketException e) {
+		catch (SocketTimeoutException | SocketException e) {
 			return null;
 		}
 		catch (Exception e) {

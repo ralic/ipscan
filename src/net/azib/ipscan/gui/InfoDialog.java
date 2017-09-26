@@ -6,7 +6,6 @@
 
 package net.azib.ipscan.gui;
 
-import net.azib.ipscan.gui.util.LayoutHelper;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.FontData;
@@ -17,9 +16,9 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 
 import static net.azib.ipscan.gui.util.LayoutHelper.formData;
+import static net.azib.ipscan.gui.util.LayoutHelper.formLayout;
 
 public class InfoDialog extends AbstractModalDialog {
-	
 	String title;
 	String title2;
 	String message;
@@ -32,19 +31,17 @@ public class InfoDialog extends AbstractModalDialog {
 	@Override
 	protected void populateShell() {
 		shell.setText(title);
-		shell.setLayout(LayoutHelper.formLayout(10, 10, 15));
+		shell.setLayout(formLayout(10, 10, 15));
 		
 		Label iconLabel = new Label(shell, SWT.ICON);
 		iconLabel.setLayoutData(formData(new FormAttachment(0), null, new FormAttachment(0), null));
 		iconLabel.setImage(shell.getImage());
 		
 		Label titleLabel = new Label(shell, SWT.NONE);
-		FontData sysFontData = shell.getDisplay().getSystemFont().getFontData()[0];
+		FontData sysFontData = shell.getFont().getFontData()[0];
 		titleLabel.setLayoutData(formData(new FormAttachment(iconLabel), null, new FormAttachment(0), null));
-		titleLabel.setFont(new Font(null, sysFontData.getName(), sysFontData.getHeight()+3, sysFontData.getStyle() | SWT.BOLD));
+		titleLabel.setFont(new Font(null, sysFontData.getName(), sysFontData.getHeight() + 3, sysFontData.getStyle() | SWT.BOLD));
 		titleLabel.setText(title2);
-
-		Button button = createCloseButton();
 
 		Text statsText = new Text(shell, SWT.MULTI | SWT.READ_ONLY);
 		statsText.setBackground(shell.getBackground());
@@ -52,8 +49,10 @@ public class InfoDialog extends AbstractModalDialog {
 		statsText.setText(message);
 		statsText.pack();
 
+		Button button = createCloseButton();
+
 		Point buttonSize = button.getSize();
-		button.setLayoutData(formData(buttonSize.x, buttonSize.y, null, new FormAttachment(100), new FormAttachment(statsText), null));
+		button.setLayoutData(formData(buttonSize.x, buttonSize.y, null, new FormAttachment(100), new FormAttachment(statsText, 0, SWT.BOTTOM), null));
 
 		shell.pack();
 	}

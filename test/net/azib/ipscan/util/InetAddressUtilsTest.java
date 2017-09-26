@@ -4,11 +4,52 @@ import org.junit.Test;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.regex.Matcher;
 
 import static org.junit.Assert.*;
 
+@SuppressWarnings("ConstantConditions")
 public class InetAddressUtilsTest {
-	
+
+	@Test
+	public void hostnameMatching() throws Exception {
+		assertTrue(InetAddressUtils.HOSTNAME_REGEX.matcher("127.0.0.1").matches());
+		assertTrue(InetAddressUtils.HOSTNAME_REGEX.matcher("192.168.245.345").matches());
+		assertTrue(InetAddressUtils.HOSTNAME_REGEX.matcher("8.8.8.8").matches());
+		assertTrue(InetAddressUtils.HOSTNAME_REGEX.matcher("a.bc").matches());
+		assertTrue(InetAddressUtils.HOSTNAME_REGEX.matcher("angryip.org").matches());
+		assertTrue(InetAddressUtils.HOSTNAME_REGEX.matcher("www.example.com").matches());
+		assertTrue(InetAddressUtils.HOSTNAME_REGEX.matcher("A.B.CD").matches());
+		assertTrue(InetAddressUtils.HOSTNAME_REGEX.matcher("me.local").matches());
+
+		assertFalse(InetAddressUtils.HOSTNAME_REGEX.matcher("3.5").matches());
+		assertFalse(InetAddressUtils.HOSTNAME_REGEX.matcher("3.5.1").matches());
+		assertFalse(InetAddressUtils.HOSTNAME_REGEX.matcher("a.b").matches());
+		assertFalse(InetAddressUtils.HOSTNAME_REGEX.matcher("abc").matches());
+		assertFalse(InetAddressUtils.HOSTNAME_REGEX.matcher("123").matches());
+		assertFalse(InetAddressUtils.HOSTNAME_REGEX.matcher("Hello world.").matches());
+	}
+
+	@Test
+	public void findIPs() throws Exception {
+		Matcher matcher = InetAddressUtils.HOSTNAME_REGEX.matcher("Hello, my IP is 10.10.10.123, not 128.92.34.56. Isn't it cool?");
+		assertTrue(matcher.find());
+		assertEquals("10.10.10.123", matcher.group());
+		assertTrue(matcher.find());
+		assertEquals("128.92.34.56", matcher.group());
+		assertFalse(matcher.find());
+	}
+
+	@Test
+	public void findHostnames() throws Exception {
+		Matcher matcher = InetAddressUtils.HOSTNAME_REGEX.matcher("Angry IP Scanner's official site it http://angryip.org, not http://www.angryziber.com. Isn't it cool?");
+		assertTrue(matcher.find());
+		assertEquals("angryip.org", matcher.group());
+		assertTrue(matcher.find());
+		assertEquals("www.angryziber.com", matcher.group());
+		assertFalse(matcher.find());
+	}
+
 	@Test
 	public void testStartRangeByNetmask() throws UnknownHostException {
 		assertEquals("127.0.1.64", InetAddressUtils.startRangeByNetmask(

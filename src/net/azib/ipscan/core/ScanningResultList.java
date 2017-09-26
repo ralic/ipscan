@@ -14,6 +14,8 @@ import net.azib.ipscan.feeders.Feeder;
 import net.azib.ipscan.fetchers.Fetcher;
 import net.azib.ipscan.fetchers.FetcherRegistry;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.net.InetAddress;
 import java.util.*;
 
@@ -22,6 +24,7 @@ import java.util.*;
  *
  * @author Anton Keks
  */
+@Singleton
 public class ScanningResultList implements Iterable<ScanningResult> {
 	
 	private static final int RESULT_LIST_INITIAL_SIZE = 1024;
@@ -46,8 +49,8 @@ public class ScanningResultList implements Iterable<ScanningResult> {
 	public ScanningResultList(FetcherRegistry fetcherRegistry) {
 		this.fetcherRegistry = fetcherRegistry;
 	}
-	
-	public ScanningResultList(FetcherRegistry fetcherRegistry, StateMachine stateMachine) {
+
+	@Inject public ScanningResultList(FetcherRegistry fetcherRegistry, StateMachine stateMachine) {
 		this(fetcherRegistry);
 		stateMachine.addTransitionListener(new StopScanningListener());
 	}

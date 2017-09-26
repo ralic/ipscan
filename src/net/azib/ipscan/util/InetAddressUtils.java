@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 import static java.net.NetworkInterface.getNetworkInterfaces;
+import static java.util.regex.Pattern.CASE_INSENSITIVE;
 
 /**
  * This class provides various utility static methods,
@@ -26,7 +27,7 @@ public class InetAddressUtils {
 	static final Logger LOG = LoggerFactory.getLogger();
 	
 	// Warning! IPv4 specific code
-	public static final Pattern IP_ADDRESS_REGEX = Pattern.compile("\\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\b");
+	public static final Pattern HOSTNAME_REGEX = Pattern.compile("\\b((([a-z]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)+([a-z]{2,})|\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})\\b", CASE_INSENSITIVE);
 
 	public static InetAddress startRangeByNetmask(InetAddress address, InetAddress netmask) {
 		byte[] netmaskBytes = netmask.getAddress();
@@ -38,9 +39,8 @@ public class InetAddressUtils {
 			return InetAddress.getByAddress(addressBytes);
 		} 
 		catch (UnknownHostException e) {
-			// this should never happen as we are modifying the same bytes
-			// received from the InetAddress
-			return null;
+			// this should never happen as we are modifying the same bytes received from the InetAddress
+			throw new IllegalArgumentException(e);
 		}
 	}
 
@@ -52,11 +52,10 @@ public class InetAddressUtils {
 		}
 		try {
 			return InetAddress.getByAddress(addressBytes);
-		} catch (UnknownHostException e) {
-			// this should never happen as we are modifying the same bytes
-			// received from the InetAddress
-			return null;
 		}
+		catch (UnknownHostException e) {
+			// this should never happen as we are modifying the same bytes received from the InetAddress
+			throw new IllegalArgumentException(e);		}
 	}
 	
 	/**

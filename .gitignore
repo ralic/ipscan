@@ -6,5 +6,7 @@
 /ant-bin.win32
 /ant-bin.win64
 /dist
-/.idea/workspace.xml
-/.idea/copyright
+/generated
+/test-coverage
+ipscan.iml
+.idea

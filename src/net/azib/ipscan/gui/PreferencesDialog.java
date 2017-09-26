@@ -25,19 +25,21 @@ import org.eclipse.swt.layout.RowData;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.*;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
 /**
  * Preferences Dialog
  *
  * @author Anton Keks
  */
+@Singleton
 public class PreferencesDialog extends AbstractModalDialog {
-	
-	private PingerRegistry pingerRegistry;
-	private Config globalConfig;
-	private ScannerConfig scannerConfig;
-	private GUIConfig guiConfig;
-	private ConfigDetectorDialog configDetectorDialog;
-	
+	private final PingerRegistry pingerRegistry;
+	private final Config globalConfig;
+	private final ScannerConfig scannerConfig;
+	private final GUIConfig guiConfig;
+
 	private Button okButton;
 	private Button cancelButton;
 
@@ -52,7 +54,6 @@ public class PreferencesDialog extends AbstractModalDialog {
 	private Text pingingCountText;
 	private Combo pingersCombo;
 	private Button skipBroadcastsCheckbox;
-//	private Composite fetchersTab;
 	private Composite portsTab;
 	private TabItem portsTabItem;
 	private Text portTimeoutText;
@@ -66,18 +67,15 @@ public class PreferencesDialog extends AbstractModalDialog {
 	private Button showInfoCheckbox;
 	private Button askConfirmationCheckbox;
 	private Combo languageCombo;
-	private String[] languages = { "system", "en", "de", "hu", "lt", "es", "ku", "tr" };
-	
-	public PreferencesDialog(PingerRegistry pingerRegistry, Config globalConfig, ScannerConfig scannerConfig, GUIConfig guiConfig, ConfigDetectorDialog configDetectorDialog) {
+
+	@Inject public PreferencesDialog(PingerRegistry pingerRegistry, Config globalConfig, ScannerConfig scannerConfig, GUIConfig guiConfig) {
 		this.pingerRegistry = pingerRegistry;
 		this.globalConfig = globalConfig;
 		this.scannerConfig = scannerConfig;
 		this.guiConfig = guiConfig;
-		this.configDetectorDialog = configDetectorDialog;
 	}
-	
-	@Override
-	public void open() {
+
+	@Override public void open() {
 		openTab(0);
 	}
 	
@@ -154,11 +152,6 @@ public class PreferencesDialog extends AbstractModalDialog {
 		tabItem.setText(Labels.getLabel("title.preferences.display"));
 		tabItem.setControl(displayTab);		
 
-//		createFetchersTab();
-//		tabItem = new TabItem(tabFolder, SWT.NONE);
-//		tabItem.setText(Labels.getLabel("title.preferences.fetchers"));
-//		tabItem.setControl(fetchersTab);
-		
 		tabFolder.pack();
 	}
 
@@ -189,11 +182,6 @@ public class PreferencesDialog extends AbstractModalDialog {
 		label.setText(Labels.getLabel("preferences.threads.maxThreads"));
 		maxThreadsText = new Text(threadsGroup, SWT.BORDER);
 		maxThreadsText.setLayoutData(gridData);
-//		new Label(threadsGroup, SWT.NONE);
-//		Button checkButton = new Button(threadsGroup, SWT.NONE);
-//		checkButton.setText(Labels.getLabel("button.check"));
-//		checkButton.setLayoutData(gridData);
-//		checkButton.addListener(SWT.Selection, new CheckButtonListener());
 
 		Group pingingGroup = new Group(scanningTab, SWT.NONE);
 		pingingGroup.setLayout(groupLayout);
@@ -301,7 +289,7 @@ public class PreferencesDialog extends AbstractModalDialog {
 		languageGroup.setText(Labels.getLabel("preferences.language"));
 		
 		languageCombo = new Combo(languageGroup, SWT.DROP_DOWN | SWT.READ_ONLY);
-		for (String language : languages) {
+		for (String language : Labels.LANGUAGES) {
 			languageCombo.add(Labels.getLabel("language." + language));
 		}
 		languageCombo.select(0);
@@ -369,18 +357,6 @@ public class PreferencesDialog extends AbstractModalDialog {
 	}
 
 	/**
-	 * This method initializes fetchersTab	
-	 */
-//	private void createFetchersTab() {
-//		GridLayout gridLayout = new GridLayout();
-//		gridLayout.numColumns = 1;
-//		fetchersTab = new Composite(tabFolder, SWT.NONE);
-//		fetchersTab.setLayout(gridLayout);
-//		Label label = new Label(fetchersTab, SWT.NONE);
-//		label.setText(Labels.getLabel("preferences.fetchers.info"));
-//	}
-
-	/**
 	 * @return a pre-initialized RowLayout suitable for option tabs.
 	 */
 	private RowLayout createRowLayout() {
@@ -418,8 +394,8 @@ public class PreferencesDialog extends AbstractModalDialog {
 		displayMethod[guiConfig.displayMethod.ordinal()].setSelection(true);
 		showInfoCheckbox.setSelection(guiConfig.showScanStats);
 		askConfirmationCheckbox.setSelection(guiConfig.askScanConfirmation);
-		for (int i = 0; i < languages.length; i++) {
-			if (globalConfig.language.equals(languages[i])) {
+		for (int i = 0; i < Labels.LANGUAGES.length; i++) {
+			if (globalConfig.language.equals(Labels.LANGUAGES[i])) {
 				languageCombo.select(i);
 			}
 		}
@@ -462,7 +438,7 @@ public class PreferencesDialog extends AbstractModalDialog {
 		}
 		guiConfig.showScanStats = showInfoCheckbox.getSelection();
 		guiConfig.askScanConfirmation = askConfirmationCheckbox.getSelection();
-		String newLanguage = languages[languageCombo.getSelectionIndex()];
+		String newLanguage = Labels.LANGUAGES[languageCombo.getSelectionIndex()];
 		if (!newLanguage.equals(globalConfig.language)) {
 			globalConfig.language = newLanguage;
 			MessageBox msgBox = new MessageBox(shell);
@@ -532,13 +508,6 @@ public class PreferencesDialog extends AbstractModalDialog {
 		}
 
 		public void keyReleased(KeyEvent e) {
-		}
-	}
-	
-	class CheckButtonListener implements Listener {
-		public void handleEvent(Event event) {
-			scannerConfig.maxThreads = Integer.parseInt(maxThreadsText.getText());
-			configDetectorDialog.open();
 		}
 	}
 }

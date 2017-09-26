@@ -1,6 +1,3 @@
-/**
- * 
- */
 package net.azib.ipscan.gui;
 
 import net.azib.ipscan.config.Labels;
@@ -11,6 +8,8 @@ import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.*;
 
+import javax.inject.Inject;
+
 import static net.azib.ipscan.config.Version.*;
 
 /**
@@ -19,6 +18,10 @@ import static net.azib.ipscan.config.Version.*;
  * @author Anton Keks
  */
 public class AboutDialog extends AbstractModalDialog {
+
+	@Inject
+	public AboutDialog() {
+	}
 
 	@Override
 	protected void populateShell() {

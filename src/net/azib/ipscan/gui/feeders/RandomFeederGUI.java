@@ -5,17 +5,19 @@
  */
 package net.azib.ipscan.gui.feeders;
 
-import net.azib.ipscan.config.Labels;
 import net.azib.ipscan.feeders.Feeder;
 import net.azib.ipscan.feeders.RandomFeeder;
 import net.azib.ipscan.gui.actions.FeederActions;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.TraverseEvent;
 import org.eclipse.swt.events.TraverseListener;
-import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
+
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
 
 import static net.azib.ipscan.config.Labels.getLabel;
 
@@ -24,6 +26,7 @@ import static net.azib.ipscan.config.Labels.getLabel;
  *
  * @author Anton Keks
  */
+@Singleton
 public class RandomFeederGUI extends AbstractFeederGUI {
 	private Text ipPrototypeText;
 	private Combo ipMaskCombo;
@@ -31,7 +34,7 @@ public class RandomFeederGUI extends AbstractFeederGUI {
 	private Button ipUpButton;
 	private Spinner countSpinner;
 
-	public RandomFeederGUI(Composite parent) {
+	@Inject public RandomFeederGUI(@Named("feederArea") Composite parent) {
 		super(parent);
 		feeder = new RandomFeeder();
 	}
@@ -79,14 +82,13 @@ public class RandomFeederGUI extends AbstractFeederGUI {
 		hostnameText.addTraverseListener(hostnameSelectionListener);
 		hostnameText.setLayoutData(new GridData(textWidth, -1));
 
-		ipUpButton.setImage(new Image(getDisplay(), Labels.getInstance().getImageAsStream("button.ipUp.img")));
 		ipUpButton.setText(getLabel("button.ipUp"));
 		ipUpButton.addSelectionListener(hostnameSelectionListener);
 
 		countLabel.setText(getLabel("feeder.random.count"));
 
 		countSpinner.setSelection(100);
-		countSpinner.setMaximum(100000);
+		countSpinner.setMaximum(100000000);
 		countSpinner.setMinimum(1);
 		countSpinner.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 		countSpinner.addTraverseListener(new TraverseListener() {

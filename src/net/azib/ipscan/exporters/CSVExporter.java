@@ -1,8 +1,6 @@
-/**
- * 
- */
 package net.azib.ipscan.exporters;
 
+import javax.inject.Inject;
 import java.io.IOException;
 
 /**
@@ -16,7 +14,9 @@ public class CSVExporter extends AbstractExporter {
 	static final char DELIMETER = ',';
 	/* Delimiter escaping character (if data contains DELIMETER) */
 	static final char DELIMETER_ESCAPED = '.';
-	
+
+	@Inject public CSVExporter() {}
+
 	public String getId() {
 		return "exporter.csv";
 	}
@@ -36,7 +36,7 @@ public class CSVExporter extends AbstractExporter {
 		}
 	}
 
-	public void nextAdressResults(Object[] results) throws IOException {
+	public void nextAddressResults(Object[] results) throws IOException {
 		output.write(csvSafeString(results[0]));
 		for (int i = 1; i < results.length; i++) {
 			Object result = results[i];

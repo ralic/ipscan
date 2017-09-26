@@ -6,13 +6,9 @@
 
 package net.azib.ipscan.exporters;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-
 import net.azib.ipscan.config.Labels;
+
+import java.io.*;
 
 /**
  * Helper base class of all built-in exporters
@@ -42,13 +38,19 @@ public abstract class AbstractExporter implements Exporter {
 			throw new IOException();
 	}
 
+	@Override public void nextAddressResults(Object[] results) throws IOException {
+		nextAdressResults(results); // for backwards-compatibility
+	}
+
+	@Override public void nextAdressResults(Object[] results) throws IOException {
+	}
+
 	public Exporter clone() {
 		try {
 			return (Exporter) super.clone();
 		}
 		catch (CloneNotSupportedException e) {
-			// this cannot happen
-			return null;
+			throw new RuntimeException(e);
 		}
 	}
 }

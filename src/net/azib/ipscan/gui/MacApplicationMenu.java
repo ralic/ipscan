@@ -8,27 +8,20 @@ import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
-import org.picocontainer.Startable;
+
+import javax.inject.Inject;
 
 /**
  * Mac-specific application menu handler
  * in order to conform better to Mac standards.
  */
-public class MacApplicationMenu implements Startable {
-	private final AboutDialog aboutDialog;
-	private final PreferencesDialog preferencesDialog;
-	private final SelectFetchersDialog selectFetchersDialog;
-	private final CheckVersion checkVersionListener;
+public class MacApplicationMenu {
+	@Inject AboutDialog aboutDialog;
+	@Inject PreferencesDialog preferencesDialog;
+	@Inject SelectFetchersDialog selectFetchersDialog;
+	@Inject CheckVersion checkVersionListener;
 
-	public MacApplicationMenu(AboutDialog aboutDialog, PreferencesDialog preferencesDialog, SelectFetchersDialog selectFetchersDialog, CheckVersion checkVersionListener) {
-		this.aboutDialog = aboutDialog;
-		this.preferencesDialog = preferencesDialog;
-		this.selectFetchersDialog = selectFetchersDialog;
-		this.checkVersionListener = checkVersionListener;
-	}
-
-	public void start() {
-		final Display display = Display.getDefault();
+	@Inject public MacApplicationMenu(final Display display) {
 		display.syncExec(new Runnable() {
 			public void run() {
 				initApplicationMenu(display);
@@ -36,15 +29,12 @@ public class MacApplicationMenu implements Startable {
 		});
 	}
 
-	public void stop() {
-	}
-
-	void initApplicationMenu(Display display) {
+	private void initApplicationMenu(Display display) {
 		Menu systemMenu = display.getSystemMenu();
 		if (systemMenu == null) return;
 
 		MenuItem prefs = getItem(systemMenu, SWT.ID_PREFERENCES);
-		prefs.addSelectionListener(new SelectionAdapter() {
+		if (prefs != null) prefs.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				preferencesDialog.open();
@@ -52,8 +42,7 @@ public class MacApplicationMenu implements Startable {
 		});
 
 		MenuItem about = getItem(systemMenu, SWT.ID_ABOUT);
-		// about.setText(Labels.getLabel("title.about") + " " + Version.NAME);
-		about.addSelectionListener(new SelectionAdapter() {
+		if (about != null) about.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				aboutDialog.open();
@@ -72,14 +61,13 @@ public class MacApplicationMenu implements Startable {
 		MenuItem checkVersion = new MenuItem(systemMenu, SWT.NONE, systemMenu.indexOf(about) + 1);
 		checkVersion.setText(Labels.getLabel("menu.help.checkVersion"));
 		checkVersion.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				checkVersionListener.check();
+			@Override public void widgetSelected(SelectionEvent e) {
+				checkVersionListener.check(true);
 			}
 		});
 	}
 
-	static MenuItem getItem(Menu menu, int id) {
+	private static MenuItem getItem(Menu menu, int id) {
 		MenuItem[] items = menu.getItems();
 		for (MenuItem item : items) {
 			if (item.getID() == id) return item;
